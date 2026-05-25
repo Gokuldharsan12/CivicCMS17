@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){var t=localStorage.getItem('civicTheme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Settings — CivicCMS Admin</title>
+  <script src="/js/api.js"></script>
+  <script src="/js/admin-lang.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin-shared.css">
+  <style>
+    /* ── Settings page specific styles ─────────── */
+    .settings-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 0 60px;
+    }
+
+    .settings-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .settings-section-header {
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .settings-section-icon {
+      font-size: 1.1rem;
+      width: 34px; height: 34px;
+      background: var(--surface3);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .settings-section-title {
+      font-size: .92rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .settings-section-sub {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Language Cards ────────────────────────── */
+    .lang-grid {
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .lang-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 18px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      transition: all .18s;
+      position: relative;
+      user-select: none;
+    }
+    .lang-card:hover {
+      border-color: rgba(91,94,246,.45);
+      background: rgba(91,94,246,.05);
+    }
+    .lang-card.active {
+      border-color: var(--accent);
+      background: rgba(91,94,246,.12);
+    }
+
+    .lang-flag {
+      font-size: 2rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .lang-info { flex: 1; min-width: 0; }
+    .lang-name {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .lang-native {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+    .lang-code-badge {
+      font-size: .68rem;
+      font-family: monospace;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--surface3);
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .lang-radio {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all .18s;
+    }
+    .lang-card.active .lang-radio {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .lang-card.active .lang-radio::after {
+      content: '✓';
+      font-size: .72rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .lang-card.active .lang-code-badge {
+      background: rgba(91,94,246,.2);
+      color: var(--accent2);
+    }
+
+    /* Active language indicator banner */
+    .lang-active-banner {
+      margin: 0 22px 18px;
+      padding: 11px 16px;
+      background: rgba(91,94,246,.1);
+      border: 1px solid rgba(91,94,246,.25);
+      border-radius: 10px;
+      font-size: .82rem;
+      color: var(--accent2);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    /* ── Appearance section ───────────────────── */
+    .appearance-grid {
+      padding: 18px 22px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .theme-card {
+      padding: 16px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      text-align: center;
+      transition: all .18s;
+      user-select: none;
+    }
+    .theme-card:hover {
+      border-color: rgba(91,94,246,.45);
+      background: rgba(91,94,246,.05);
+    }
+    .theme-card.active {
+      border-color: var(--accent);
+      background: rgba(91,94,246,.12);
+    }
+    .theme-card-icon { font-size: 1.6rem; margin-bottom: 8px; }
+    .theme-card-name { font-size: .82rem; font-weight: 700; color: var(--text); }
+    .theme-card-sub  { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Admin info section ───────────────────── */
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: .8rem; color: var(--muted); font-weight: 600; }
+    .info-value { font-size: .88rem; color: var(--text); font-weight: 600; }
+
+    /* ── Save/status toast ───────────────────── */
+    .settings-toast {
+      position: fixed;
+      bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 11px 22px;
+      font-size: .84rem;
+      font-weight: 600;
+      color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,.45);
+      opacity: 0;
+      transition: all .25s cubic-bezier(.2,.8,.2,1);
+      pointer-events: none;
+      z-index: 9999;
+      white-space: nowrap;
+    }
+    .settings-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Danger zone ─────────────────────────── */
+    .danger-row {
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .danger-desc { font-size: .84rem; color: var(--muted); }
+    .btn-danger-sm {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(239,68,68,.4);
+      background: rgba(239,68,68,.08);
+      color: #f87171;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-danger-sm:hover {
+      background: rgba(239,68,68,.18);
+      border-color: rgba(239,68,68,.6);
+    }
+
+    @media (max-width: 640px) {
+      .appearance-grid { grid-template-columns: 1fr 1fr; }
+      .danger-row { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div class="db-layout" id="db-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="db-sidebar" id="db-sidebar">
+    <a href="/admin/dashboard.html" class="sb-brand">
+      <div class="sb-brand-icon">🏛️</div>
+      <div class="sb-brand-text">
+        <div class="sb-brand-name">CivicCMS</div>
+        <div class="sb-brand-sub">Admin Panel</div>
+      </div>
+    </a>
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">A</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name" id="sb-name">Admin</div>
+        <div class="sb-user-plan">Admin Account</div>
+      </div>
+    </div>
+    <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()">‹</button>
+    <nav class="sb-nav">
+      <div class="sb-nav-label">MAIN</div>
+      <a href="/admin/dashboard.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Dashboard</span></a>
+      <a href="/admin/complaints.html" class="sb-link"><span class="sb-icon">📋</span><span class="sb-label">Complaints</span></a>
+      <a href="/admin/dept-heads.html" class="sb-link"><span class="sb-icon">🏢</span><span class="sb-label">Dept Heads</span></a>
+      <a href="/admin/alerts.html" class="sb-link"><span class="sb-icon">🚨</span><span class="sb-label">Alerts</span></a>
+      <a href="/admin/heatmap.html" class="sb-link"><span class="sb-icon">🗺️</span><span class="sb-label">Heatmap</span></a>
+      <a href="/admin/content-editor.html" class="sb-link"><span class="sb-icon">✏️</span><span class="sb-label">Content Editor</span></a>
+      <div class="sb-nav-label" style="margin-top:8px;">TOOLS</div>
+      <a href="/index.html" class="sb-link"><span class="sb-icon">🌐</span><span class="sb-label">View Site</span></a>
+      <div class="sb-nav-label" style="margin-top:8px;">ACCOUNT</div>
+      <a href="/admin/settings.html" class="sb-link active"><span class="sb-icon">⚙️</span><span class="sb-label">Settings</span></a>
+      <button id="sb-lang-btn" onclick="scrollToLang()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:none;background:none;cursor:pointer;color:var(--muted);font-size:.84rem;font-weight:500;font-family:inherit;width:100%;text-align:left;transition:all .18s;margin-bottom:1px;">
+        <span class="sb-icon">🌐</span>
+        <span class="sb-label" id="sb-lang-label">Language</span>
+      </button>
+    </nav>
+    <div class="sb-footer">
+      <button class="sb-link" onclick="logout()" style="color:#f87171;width:100%;"><span class="sb-icon">🚪</span><span class="sb-label">Sign Out</span></button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="db-main">
+    <header class="db-topbar">
+      <span class="topbar-title">⚙️ Settings</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="topbar-btn" onclick="logout()" title="Sign Out">👤</button>
+      </div>
+    </header>
+
+    <div class="db-body">
+      <div class="db-header">
+        <h1>Settings</h1>
+        <p>Manage your language preferences, appearance, and account — changes persist without logout</p>
+      </div>
+
+      <div class="settings-wrap">
+
+        <!-- ══ LANGUAGE SECTION ══════════════════════════════════ -->
+        <div class="settings-section" id="section-language">
+          <div class="settings-section-header">
+            <div class="settings-section-icon">🌐</div>
+            <div>
+              <div class="settings-section-title">Language / மொழி / भाषा</div>
+              <div class="settings-section-sub">Select your preferred admin interface language — applies instantly</div>
+            </div>
+          </div>
+
+          <div class="lang-active-banner" id="lang-active-banner">
+            <span style="font-size:1.1rem;" id="lang-active-flag">🇬🇧</span>
+            <span id="lang-active-text">English is currently active · saved to your browser</span>
+          </div>
+
+          <div class="lang-grid">
+
+            <!-- English -->
+            <div class="lang-card" id="lcard-en" onclick="switchLang('en')">
+              <div class="lang-flag">🇬🇧</div>
+              <div class="lang-info">
+                <div class="lang-name">English</div>
+                <div class="lang-native">Default language · International</div>
+              </div>
+              <span class="lang-code-badge">en-US</span>
+              <div class="lang-radio" id="lradio-en"></div>
+            </div>
+
+            <!-- Tamil -->
+            <div class="lang-card" id="lcard-ta" onclick="switchLang('ta')">
+              <div class="lang-flag">🇮🇳</div>
+              <div class="lang-info">
+                <div class="lang-name">Tamil — தமிழ்</div>
+                <div class="lang-native">தமிழ்நாடு · Tamil Nadu, India</div>
+              </div>
+              <span class="lang-code-badge">ta-IN</span>
+              <div class="lang-radio" id="lradio-ta"></div>
+            </div>
+
+            <!-- Hindi -->
+            <div class="lang-card" id="lcard-hi" onclick="switchLang('hi')">
+              <div class="lang-flag">🇮🇳</div>
+              <div class="lang-info">
+                <div class="lang-name">Hindi — हिंदी</div>
+                <div class="lang-native">भारत · National language of India</div>
+              </div>
+              <span class="lang-code-badge">hi-IN</span>
+              <div class="lang-radio" id="lradio-hi"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ══ APPEARANCE SECTION ════════════════════════════════ -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <div class="settings-section-icon">🎨</div>
+            <div>
+              <div class="settings-section-title">Appearance</div>
+              <div class="settings-section-sub">Choose your preferred color theme for the admin panel</div>
+            </div>
+          </div>
+
+          <div class="appearance-grid">
+            <div class="theme-card" id="tcard-dark" onclick="switchTheme('dark')">
+              <div class="theme-card-icon">🌙</div>
+              <div class="theme-card-name">Dark</div>
+              <div class="theme-card-sub">Default theme</div>
+            </div>
+            <div class="theme-card" id="tcard-light" onclick="switchTheme('light')">
+              <div class="theme-card-icon">☀️</div>
+              <div class="theme-card-name">Light</div>
+              <div class="theme-card-sub">Bright mode</div>
+            </div>
+            <div class="theme-card" id="tcard-system" onclick="switchTheme('system')">
+              <div class="theme-card-icon">💻</div>
+              <div class="theme-card-name">System</div>
+              <div class="theme-card-sub">Auto-detect</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ ACCOUNT INFO SECTION ══════════════════════════════ -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <div class="settings-section-icon">👤</div>
+            <div>
+              <div class="settings-section-title">Account Information</div>
+              <div class="settings-section-sub">Your current admin session details</div>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label">Name</span>
+            <span class="info-value" id="info-name">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-value" id="info-email">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Role</span>
+            <span class="info-value" id="info-role">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Interface Language</span>
+            <span class="info-value" id="info-lang">English (en-US)</span>
+          </div>
+        </div>
+
+        <!-- ══ DANGER ZONE ═══════════════════════════════════════ -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <div class="settings-section-icon">🚪</div>
+            <div>
+              <div class="settings-section-title">Session</div>
+              <div class="settings-section-sub">Sign out or clear local preferences</div>
+            </div>
+          </div>
+          <div class="danger-row">
+            <div class="danger-desc">Sign out of the admin panel. Your data and settings are preserved.</div>
+            <button class="btn-danger-sm" onclick="logout()">Sign Out</button>
+          </div>
+          <div class="danger-row" style="border-top:1px solid var(--border);">
+            <div class="danger-desc">Reset language and theme to defaults (English, Dark). Session remains active.</div>
+            <button class="btn-danger-sm" onclick="resetPrefs()">Reset Preferences</button>
+          </div>
+        </div>
+
+      </div><!-- /settings-wrap -->
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="settings-toast" id="settings-toast"></div>
+
+<script>
+  if (!API.isAdmin()) window.location.href = '/admin/login.html';
+  function logout() { API.clearSession(); window.location.href = '/admin/login.html'; }
+
+  // Sidebar collapse
+  const adminName = API.getName() || 'Admin';
+  document.getElementById('sb-name').textContent   = adminName;
+  document.getElementById('sb-avatar').textContent = adminName.charAt(0).toUpperCase();
+  document.getElementById('info-name').textContent  = adminName;
+  document.getElementById('info-email').textContent = API.getEmail() || '—';
+  document.getElementById('info-role').textContent  = API.getRole() || '—';
+
+  let sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+  function applyCollapse() {
+    document.getElementById('db-layout').classList.toggle('collapsed', sidebarCollapsed);
+    document.getElementById('db-sidebar').classList.toggle('collapsed', sidebarCollapsed);
+  }
+  applyCollapse();
+  function toggleSidebar() {
+    sidebarCollapsed = !sidebarCollapsed;
+    localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+    applyCollapse();
+  }
+
+  function scrollToLang() {
+    document.getElementById('section-language').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── Language ────────────────────────────────────────────────
+  const LANG_META = {
+    en: { flag: '🇬🇧', name: 'English',       native: 'English',  code: 'en-US' },
+    ta: { flag: '🇮🇳', name: 'Tamil',         native: 'தமிழ்',    code: 'ta-IN' },
+    hi: { flag: '🇮🇳', name: 'Hindi',         native: 'हिंदी',    code: 'hi-IN' },
+  };
+
+  function refreshLangUI() {
+    const cur = AdminLang.getCode();
+    const meta = LANG_META[cur] || LANG_META.en;
+
+    // Update language cards
+    ['en','ta','hi'].forEach(code => {
+      document.getElementById('lcard-' + code)?.classList.toggle('active', code === cur);
+    });
+
+    // Update banner
+    document.getElementById('lang-active-flag').textContent = meta.flag;
+    document.getElementById('lang-active-text').textContent =
+      `${meta.name} (${meta.native}) is active · saved to localStorage`;
+
+    // Update account info
+    document.getElementById('info-lang').textContent = `${meta.name} (${meta.code})`;
+
+    // Update sidebar label
+    const lbl = document.getElementById('sb-lang-label');
+    if (lbl) lbl.textContent = meta.flag + ' ' + meta.native;
+  }
+
+  function switchLang(code) {
+    AdminLang.set(code);   // saves to localStorage + applies data-i18n DOM swap
+    refreshLangUI();
+    const meta = LANG_META[code];
+    showToast(`${meta.flag} Language changed to ${meta.name} (${meta.native})`);
+  }
+
+  // ── Theme ───────────────────────────────────────────────────
+  function refreshThemeUI() {
+    const cur = localStorage.getItem('civic-admin-theme') || 'dark';
+    ['dark','light','system'].forEach(t => {
+      document.getElementById('tcard-' + t)?.classList.toggle('active', t === cur);
+    });
+  }
+
+  function switchTheme(theme) {
+    localStorage.setItem('civic-admin-theme', theme);
+    // Apply theme to <html> data-theme for future loads; live CSS vars could be
+    // toggled here if a light-mode stylesheet is available
+    refreshThemeUI();
+    showToast(`🎨 Theme set to ${theme.charAt(0).toUpperCase() + theme.slice(1)}`);
+  }
+
+  // ── Reset prefs ─────────────────────────────────────────────
+  function resetPrefs() {
+    if (!confirm('Reset language to English and theme to Dark?')) return;
+    AdminLang.set('en');
+    localStorage.setItem('civic-admin-theme', 'dark');
+    refreshLangUI();
+    refreshThemeUI();
+    showToast('✅ Preferences reset to defaults');
+  }
+
+  // ── Toast ───────────────────────────────────────────────────
+  let _toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('settings-toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+
+  // ── Init ────────────────────────────────────────────────────
+  AdminLang.applyToPage();
+  refreshLangUI();
+  refreshThemeUI();
+</script>
+</body>
+</html>

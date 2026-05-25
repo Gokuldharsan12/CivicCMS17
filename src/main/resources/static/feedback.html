@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){var t=localStorage.getItem('civicTheme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+  <title>Feedback — CivicCMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+
+    /* ── Page wrapper ───────────────────────────────────────────── */
+    .fb-page {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px 60px;
+    }
+
+    /* ── Main card ──────────────────────────────────────────────── */
+    .fb-card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(79,70,229,.07), 0 1px 4px rgba(0,0,0,.04);
+      overflow: hidden;
+    }
+
+    /* ── Card header ────────────────────────────────────────────── */
+    .fb-header {
+      padding: 28px 32px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .fb-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .fb-title {
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text);
+      margin: 0;
+    }
+    .fb-reviews-link {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--indigo);
+      text-decoration: none;
+      opacity: .8;
+      transition: opacity .15s;
+    }
+    .fb-reviews-link:hover { opacity: 1; }
+    .fb-subtitle {
+      font-size: .82rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* ── Card body ──────────────────────────────────────────────── */
+    .fb-body { padding: 28px 32px; display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── Field group ────────────────────────────────────────────── */
+    .fb-field { display: flex; flex-direction: column; gap: 7px; }
+    .fb-label {
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+    }
+    .fb-label span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-dim); }
+
+    /* ── Select ─────────────────────────────────────────────────── */
+    .fb-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border-2);
+      border-radius: 8px;
+      font-family: var(--font);
+      font-size: .875rem;
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      cursor: pointer;
+      transition: border-color .18s, box-shadow .18s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .fb-select:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-lt); }
+
+    /* ── Star rating row ────────────────────────────────────────── */
+    .rating-rows { display: flex; flex-direction: column; gap: 12px; }
+    .rating-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .rating-row-label {
+      font-size: .83rem;
+      color: var(--text);
+      font-weight: 500;
+      min-width: 130px;
+    }
+    .rating-row-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .stars { display: flex; gap: 4px; }
+    .star {
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--border-2);
+      transition: color .12s, transform .1s;
+      user-select: none;
+      line-height: 1;
+    }
+    .star:hover, .star.lit { color: #F59E0B; }
+    .star:hover { transform: scale(1.15); }
+    .rating-hint {
+      font-size: .72rem;
+      color: var(--text-dim);
+      min-width: 52px;
+      font-weight: 500;
+    }
+
+    /* ── Divider ────────────────────────────────────────────────── */
+    .fb-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 -32px;
+    }
+
+    /* ── Textarea ───────────────────────────────────────────────── */
+    .fb-textarea {
+      width: 100%;
+      min-height: 96px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border-2);
+      border-radius: 8px;
+      font-family: var(--font);
+      font-size: .875rem;
+      color: var(--text);
+      background: var(--surface);
+      resize: vertical;
+      outline: none;
+      line-height: 1.6;
+      transition: border-color .18s, box-shadow .18s;
+      box-sizing: border-box;
+    }
+    .fb-textarea:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-lt); }
+    .fb-textarea::placeholder { color: var(--text-dim); }
+
+    /* ── Submit button ──────────────────────────────────────────── */
+    .fb-submit {
+      width: 100%;
+      padding: 12px;
+      background: var(--indigo);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font);
+      font-size: .9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .18s, box-shadow .18s, transform .1s;
+      letter-spacing: .02em;
+    }
+    .fb-submit:hover { background: var(--indigo-dk); box-shadow: 0 4px 18px rgba(79,70,229,.35); }
+    .fb-submit:active { transform: scale(.98); }
+    .fb-submit:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+    /* ── Alert ──────────────────────────────────────────────────── */
+    .fb-alert {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: .82rem;
+      font-weight: 600;
+      background: var(--red-lt);
+      color: var(--red);
+      border: 1px solid var(--red-mid);
+    }
+    .fb-alert.show { display: block; }
+
+    /* ── Success state ──────────────────────────────────────────── */
+    .fb-success {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      padding: 48px 32px;
+    }
+    .fb-success.show { display: flex; }
+    .fb-success-icon {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--green-lt);
+      border: 1px solid var(--green-mid);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+    .fb-success-title {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .fb-success-sub {
+      font-size: .84rem;
+      color: var(--text-muted);
+      max-width: 320px;
+      line-height: 1.55;
+    }
+    .fb-success-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ── Dark mode ──────────────────────────────────────────────── */
+    [data-theme="dark"] .fb-card { background: var(--surface); border-color: var(--border-2); }
+    [data-theme="dark"] .fb-header { border-color: var(--border-2); }
+    [data-theme="dark"] .fb-select { background: var(--surface2); border-color: var(--border-2); color: var(--text); }
+    [data-theme="dark"] .fb-textarea { background: var(--surface2); border-color: var(--border-2); color: var(--text); }
+    [data-theme="dark"] .fb-divider { background: var(--border-2); }
+    [data-theme="dark"] .star { color: var(--border-2); }
+
+    @media (max-width: 600px) {
+      .fb-page { padding: 20px 12px 48px; }
+      .fb-header, .fb-body { padding-left: 20px; padding-right: 20px; }
+      .fb-divider { margin: 0 -20px; }
+      .rating-row { flex-wrap: wrap; gap: 6px; }
+      .rating-row-label { min-width: unset; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">C</div>
+    <span><span class="brand-accent">Civic</span>CMS</span>
+  </div>
+  <div class="navbar-links">
+    <a href="/index.html" id="nav-home">Home</a>
+    <a href="/chatbot.html" id="nav-chatbot">AI Chatbot</a>
+    <a href="/submit.html" id="nav-submit">Submit</a>
+    <a href="/track.html" id="nav-track">Track</a>
+    <a href="/history.html" id="nav-my">My Complaints</a>
+    <a href="/feedback-wall.html" id="nav-reviews">💬 Reviews</a>
+  </div>
+  <div id="civic-settings-wrap" style="display:flex;align-items:center;gap:8px;">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="CivicTheme.toggle()" title="Toggle theme">🌙</button>
+    <button id="civic-gear-btn" onclick="LangManager.toggleSettings(event)" title="Settings">⚙️</button>
+    <div id="civic-settings-panel">
+      <div class="settings-section-title">🎨 Theme</div>
+      <button class="theme-option" id="theme-opt-light" onclick="CivicTheme.set('light');LangManager.toggleSettings(event)"><span>☀️</span><span>Light</span><span class="lang-check" id="tchk-light"></span></button>
+      <button class="theme-option" id="theme-opt-dark" onclick="CivicTheme.set('dark');LangManager.toggleSettings(event)"><span>🌙</span><span>Dark</span><span class="lang-check" id="tchk-dark"></span></button>
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">🌐 Language</div>
+      <button class="lang-option" id="langopt-en" onclick="LangManager.switchTo('en')"><span>🇬🇧</span><span>English</span><span class="lang-check" id="lcheck-en"></span></button>
+      <button class="lang-option" id="langopt-ta" onclick="LangManager.switchTo('ta')"><span>🇮🇳</span><span>தமிழ்</span><span class="lang-check" id="lcheck-ta"></span></button>
+      <button class="lang-option" id="langopt-hi" onclick="LangManager.switchTo('hi')"><span>🇮🇳</span><span>हिंदी</span><span class="lang-check" id="lcheck-hi"></span></button>
+      <div class="settings-divider"></div>
+      <button class="logout-option" onclick="LangManager.doLogout()"><span>🚪</span><span id="settings-logout-text">Logout</span></button>
+    </div>
+  </div>
+</nav>
+
+<div class="fb-page">
+  <div class="fb-card">
+
+    <!-- Header -->
+    <div class="fb-header">
+      <div class="fb-header-top">
+        <h1 class="fb-title">Share Your Feedback</h1>
+        <a href="/feedback-wall.html" class="fb-reviews-link">View Reviews →</a>
+      </div>
+      <p class="fb-subtitle">Rate your experience with CivicCMS. Your input is visible to the public on the Reviews page.</p>
+    </div>
+
+    <!-- Form body -->
+    <div class="fb-body" id="fb-body">
+
+      <div id="fb-alert" class="fb-alert"></div>
+
+      <!-- Complaint link -->
+      <div class="fb-field">
+        <label class="fb-label">Linked Complaint <span>(optional)</span></label>
+        <select class="fb-select" id="fb-complaint">
+          <option value="">General feedback — not linked to a complaint</option>
+        </select>
+      </div>
+
+      <div class="fb-divider"></div>
+
+      <!-- Ratings -->
+      <div class="fb-field">
+        <label class="fb-label">Ratings <span>(required — click a star)</span></label>
+        <div class="rating-rows">
+          <div class="rating-row">
+            <span class="rating-row-label">Overall Experience</span>
+            <div class="rating-row-right">
+              <div class="stars" id="stars-overall"></div>
+              <span class="rating-hint" id="hint-overall"></span>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="rating-row-label">Response Speed</span>
+            <div class="rating-row-right">
+              <div class="stars" id="stars-speed"></div>
+              <span class="rating-hint" id="hint-speed"></span>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="rating-row-label">Resolution Quality</span>
+            <div class="rating-row-right">
+              <div class="stars" id="stars-quality"></div>
+              <span class="rating-hint" id="hint-quality"></span>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="rating-row-label">Communication</span>
+            <div class="rating-row-right">
+              <div class="stars" id="stars-comm"></div>
+              <span class="rating-hint" id="hint-comm"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fb-divider"></div>
+
+      <!-- Comments -->
+      <div class="fb-field">
+        <label class="fb-label" for="fb-comment">Comments <span>(optional)</span></label>
+        <textarea
+          class="fb-textarea"
+          id="fb-comment"
+          placeholder="Describe your experience — what worked well, what could be improved, or any specific issues you encountered."></textarea>
+      </div>
+
+      <!-- Submit -->
+      <button class="fb-submit" id="fb-submit" onclick="submitFeedback()">
+        Submit Feedback
+      </button>
+
+    </div>
+
+    <!-- Success state (replaces form body) -->
+    <div class="fb-success" id="fb-success">
+      <div class="fb-success-icon">✓</div>
+      <div class="fb-success-title">Feedback Submitted</div>
+      <p class="fb-success-sub">Thank you. Your feedback has been recorded and is now visible on the public Reviews page.</p>
+      <div class="fb-success-actions">
+        <a href="/feedback-wall.html" class="btn btn-primary">View Reviews</a>
+        <a href="/index.html" class="btn btn-outline">Back to Home</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>&copy; 2026 <span class="f-accent">CivicCMS</span></footer>
+
+<script src="/js/cms.js"></script>
+<script src="/js/lang.js"></script>
+<script src="/js/api.js"></script>
+<script>
+const ratings = { overall: 0, speed: 0, quality: 0, comm: 0 };
+const HINTS = {
+  overall: ['Poor',    'Below Average', 'Average', 'Good',    'Excellent'],
+  speed:   ['Very Slow','Slow',         'Average', 'Fast',    'Very Fast'],
+  quality: ['Poor',    'Below Average', 'Average', 'Good',    'Excellent'],
+  comm:    ['None',    'Minimal',       'Adequate','Regular', 'Excellent'],
+};
+
+function buildStars(containerId, key) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  for (let i = 1; i <= 5; i++) {
+    const s = document.createElement('span');
+    s.className = 'star';
+    s.textContent = '★';
+    s.addEventListener('click', () => setRating(containerId, key, i));
+    s.addEventListener('mouseenter', () => { highlight(containerId, i); setHint(key, i); });
+    s.addEventListener('mouseleave', () => { highlight(containerId, ratings[key]); setHint(key, ratings[key]); });
+    c.appendChild(s);
+  }
+}
+
+function highlight(id, val) {
+  document.querySelectorAll('#' + id + ' .star').forEach((s, i) => s.classList.toggle('lit', i < val));
+}
+
+function setHint(key, val) {
+  const el = document.getElementById('hint-' + key);
+  if (el) el.textContent = val ? HINTS[key][val - 1] : '';
+}
+
+function setRating(id, key, val) {
+  ratings[key] = val;
+  highlight(id, val);
+  setHint(key, val);
+  // Auto-suggest overall from sub-ratings if not yet set
+  if (key !== 'overall' && ratings.overall === 0) {
+    const filled = [ratings.speed, ratings.quality, ratings.comm].filter(v => v > 0);
+    if (filled.length === 3) {
+      const avg = Math.round(filled.reduce((a, b) => a + b, 0) / filled.length);
+      setRating('stars-overall', 'overall', avg);
+    }
+  }
+}
+
+function showAlert(msg) {
+  const el = document.getElementById('fb-alert');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+async function loadComplaints() {
+  if (!API.isLogged()) return;
+  try {
+    const data = await API.get('/api/v1/complaints/mine');
+    if (!data || !data.length) return;
+    const sel = document.getElementById('fb-complaint');
+    data.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = 'CMP-' + c.id + ' — ' + c.title + ' (' + c.status + ')';
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function submitFeedback() {
+  if (!ratings.overall) {
+    showAlert('Please rate your Overall Experience before submitting.');
+    return;
+  }
+
+  const btn = document.getElementById('fb-submit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const payload = {
+    speedRating:         ratings.speed   || ratings.overall,
+    qualityRating:       ratings.quality || ratings.overall,
+    communicationRating: ratings.comm    || ratings.overall,
+    comments:            document.getElementById('fb-comment').value.trim(),
+  };
+
+  try {
+    const complaintVal = document.getElementById('fb-complaint').value;
+
+    if (complaintVal) {
+      await API.post('/api/v1/ratings/' + complaintVal, payload).catch(e => {
+        // 409 = already rated; surface the message
+        if (e.status === 409) throw new Error(e.data?.error || 'You have already rated this complaint.');
+        if (e.status === 400) throw new Error(e.data?.error || 'Only resolved complaints can be rated.');
+        throw e;
+      });
+    } else {
+      const submitterName = localStorage.getItem('name') || 'Anonymous';
+      await API.post('/api/v1/ratings/general', { ...payload, submitterName });
+    }
+
+    // Show success
+    document.getElementById('fb-body').style.display = 'none';
+    document.getElementById('fb-success').classList.add('show');
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Submit Feedback';
+    showAlert(e.message || 'Submission failed. Please try again.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  try { LangManager.applyNav(); } catch(e) {}
+  buildStars('stars-overall', 'overall');
+  buildStars('stars-speed',   'speed');
+  buildStars('stars-quality', 'quality');
+  buildStars('stars-comm',    'comm');
+  loadComplaints();
+
+  // Pre-select complaint from URL param
+  const urlId = new URLSearchParams(window.location.search).get('complaint');
+  if (urlId) setTimeout(() => {
+    const sel = document.getElementById('fb-complaint');
+    if (sel) sel.value = urlId;
+  }, 600);
+});
+</script>
+<script src="/js/animations.js"></script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerts — CivicCMS Admin</title>
+  <script src="/js/api.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0d0e17;--sidebar:#12131f;--surface:#191b2a;--surface2:#1f2135;--border:rgba(255,255,255,0.07);--text:#e4e2f0;--muted:#7a7996;--accent:#5b5ef6;--accent2:#818cf8;--green:#22c55e;--red:#ef4444;--orange:#f97316;--purple:#a855f7;--sidebar-w:240px;--sidebar-col:60px;--radius:12px;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+    .db-layout{display:flex;min-height:100vh;}
+    /* SIDEBAR */
+    .db-sidebar{width:var(--sidebar-w);background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;transition:width .28s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+    .db-sidebar.collapsed{width:var(--sidebar-col);}
+    .sb-brand{display:flex;align-items:center;gap:12px;padding:18px 16px 16px;border-bottom:1px solid var(--border);min-height:64px;text-decoration:none;}
+    .sb-brand-icon{width:36px;height:36px;flex-shrink:0;background:linear-gradient(135deg,#5b5ef6,#a78bfa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    .sb-brand-text{white-space:nowrap;overflow:hidden;}
+    .sb-brand-name{font-size:.95rem;font-weight:700;color:#fff;}
+    .sb-brand-sub{font-size:.7rem;color:var(--muted);margin-top:1px;}
+    .sb-user{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);}
+    .sb-avatar{width:36px;height:36px;flex-shrink:0;background:linear-gradient(135deg,#5b5ef6,#a78bfa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:#fff;}
+    .sb-user-info{overflow:hidden;white-space:nowrap;flex:1;}
+    .sb-user-name{font-size:.85rem;font-weight:600;color:var(--text);}
+    .sb-user-plan{font-size:.7rem;color:var(--muted);}
+    .sb-toggle{position:absolute;top:50%;right:-14px;transform:translateY(-50%);width:28px;height:28px;background:var(--sidebar);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.75rem;color:var(--muted);transition:all .2s;z-index:210;}
+    .sb-toggle:hover{color:var(--text);border-color:var(--accent);}
+    .db-sidebar.collapsed .sb-toggle{transform:translateY(-50%) rotate(180deg);}
+    .sb-nav{flex:1;padding:10px 8px;overflow-y:auto;scrollbar-width:none;}
+    .sb-nav::-webkit-scrollbar{display:none;}
+    .sb-nav-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:8px 10px 4px;white-space:nowrap;overflow:hidden;transition:opacity .2s;}
+    .db-sidebar.collapsed .sb-nav-label{opacity:0;height:0;padding:0;}
+    .sb-link{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:var(--muted);text-decoration:none;font-size:.85rem;font-weight:500;transition:all .18s;white-space:nowrap;cursor:pointer;border:none;background:none;width:100%;text-align:left;margin-bottom:1px;}
+    .sb-link:hover{background:rgba(255,255,255,0.05);color:var(--text);}
+    .sb-link.active{background:rgba(91,94,246,0.15);color:var(--accent2);}
+    .sb-icon{width:20px;text-align:center;flex-shrink:0;font-size:1rem;}
+    .sb-label{flex:1;overflow:hidden;text-overflow:ellipsis;}
+    .db-sidebar.collapsed .sb-label,.db-sidebar.collapsed .sb-nav-label{display:none;}
+    .db-sidebar.collapsed .sb-link{justify-content:center;padding:10px 0;}
+    /* MAIN */
+    .db-main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin-left .28s cubic-bezier(.4,0,.2,1);}
+    .db-layout.collapsed .db-main{margin-left:var(--sidebar-col);}
+    .db-topbar{height:64px;background:var(--sidebar);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;}
+    .topbar-title{flex:1;font-size:1.2rem;font-weight:700;color:#ffffff;letter-spacing:-0.01em;}
+    .topbar-btn{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:1rem;transition:all .2s;text-decoration:none;}
+    .topbar-btn:hover{border-color:var(--accent2);color:var(--text);}
+    .live-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:20px;animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+    .db-body{padding:28px 28px 48px;}
+    .db-header{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+    .db-header-left h1{font-size:1.8rem;font-weight:700;color:#ffffff;margin-bottom:4px;letter-spacing:-0.02em;}
+    .db-header-left p{font-size:.85rem;color:var(--muted);}
+    /* KPI strip */
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+    .kpi-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+    .kpi-num{font-size:2rem;font-weight:800;line-height:1;margin-bottom:5px;}
+    .kpi-lbl{font-size:.74rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+    /* Charts row */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+    .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+    .chart-card h4{font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:16px;}
+    .cat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+    .cat-bar-lbl{width:90px;font-size:.76rem;font-weight:600;color:var(--muted);flex-shrink:0;}
+    .cat-bar-track{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+    .cat-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .6s ease;}
+    .cat-bar-cnt{font-size:.76rem;font-weight:800;color:var(--text);min-width:22px;text-align:right;}
+    /* Feed */
+    .feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;}
+    .feed-title{font-size:1rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px;}
+    .tab-group{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;}
+    .tab-btn{padding:7px 16px;border:none;border-radius:8px;background:transparent;color:var(--muted);font-size:.8rem;font-weight:700;cursor:pointer;transition:all .18s;font-family:inherit;}
+    .tab-btn.active{background:var(--surface);color:var(--text);}
+    .alert-feed{display:flex;flex-direction:column;gap:10px;}
+    .alert-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 20px;display:flex;gap:16px;align-items:flex-start;transition:all .18s;cursor:pointer;}
+    .alert-card:hover{border-color:rgba(255,255,255,.14);transform:translateX(2px);}
+    .alert-card.is-critical{border-left:3px solid var(--red);}
+    .alert-card.is-high{border-left:3px solid var(--orange);}
+    .alert-card.is-resolved{opacity:.65;}
+    .alert-icon-wrap{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;background:var(--surface2);}
+    .alert-body{flex:1;min-width:0;}
+    .alert-title{font-size:.9rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;}
+    .alert-meta{font-size:.77rem;color:var(--muted);margin-bottom:6px;}
+    .alert-desc{font-size:.8rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .alert-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;}
+    /* Priority / status pills */
+    .pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:800;text-transform:uppercase;}
+    .pill-CRITICAL{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);}
+    .pill-HIGH{background:rgba(249,115,22,.15);color:#fb923c;border:1px solid rgba(249,115,22,.3);}
+    .pill-MEDIUM{background:rgba(234,179,8,.15);color:#facc15;border:1px solid rgba(234,179,8,.3);}
+    .pill-LOW{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);}
+    .pill-status{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+    /* Buttons */
+    .btn-action{padding:6px 13px;border:none;border-radius:7px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+    .btn-resolve{background:rgba(34,197,94,.15);color:#4ade80;}
+    .btn-resolve:hover{background:rgba(34,197,94,.25);}
+    .btn-progress{background:rgba(91,94,246,.15);color:var(--accent2);}
+    .btn-progress:hover{background:rgba(91,94,246,.25);}
+    .btn-escalate{background:rgba(239,68,68,.12);color:#f87171;}
+    .btn-escalate:hover{background:rgba(239,68,68,.22);}
+    /* Toast */
+    .sse-toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface);border:2px solid rgba(239,68,68,.5);border-radius:var(--radius);padding:14px 18px;max-width:320px;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+    .sse-toast.show{display:block;}
+    .sse-toast-title{font-weight:800;font-size:.88rem;color:var(--red);margin-bottom:4px;}
+    .sse-toast-body{font-size:.8rem;color:var(--muted);}
+    /* Empty */
+    .empty-state{text-align:center;padding:48px;color:var(--muted);}
+    .empty-state .e-icon{font-size:2.5rem;margin-bottom:12px;}
+    @media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,1fr);}.two-col{grid-template-columns:1fr;}}
+    @media(max-width:700px){.db-sidebar{width:var(--sidebar-col);}.db-main{margin-left:var(--sidebar-col);}.db-body{padding:18px 16px 40px;}.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+  </style>
+  <link rel="stylesheet" href="/css/admin-shared.css">
+</head>
+<body>
+<div class="db-layout" id="db-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="db-sidebar" id="db-sidebar">
+    <a href="/admin/dashboard.html" class="sb-brand">
+      <div class="sb-brand-icon">🏛️</div>
+      <div class="sb-brand-text">
+        <div class="sb-brand-name">CivicCMS</div>
+        <div class="sb-brand-sub">Admin Panel</div>
+      </div>
+    </a>
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">A</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name" id="sb-name">Admin</div>
+        <div class="sb-user-plan">Admin Account</div>
+      </div>
+    </div>
+    <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()">‹</button>
+    <nav class="sb-nav">
+      <div class="sb-nav-label">MAIN</div>
+      <a href="/admin/dashboard.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Dashboard</span></a>
+      <a href="/admin/complaints.html" class="sb-link"><span class="sb-icon">📋</span><span class="sb-label">Complaints</span></a>
+      <a href="/admin/dept-heads.html" class="sb-link "><span class="sb-icon">🏢</span><span class="sb-label">Dept Heads</span></a>
+      <a href="/admin/alerts.html" class="sb-link active"><span class="sb-icon">🚨</span><span class="sb-label">Alerts</span></a>
+      <a href="/admin/heatmap.html" class="sb-link"><span class="sb-icon">🗺️</span><span class="sb-label">Heatmap</span></a>
+      <a href="/admin/content-editor.html" class="sb-link"><span class="sb-icon">✏️</span><span class="sb-label">Content Editor</span></a>
+      <div class="sb-nav-label" style="margin-top:8px;">TOOLS</div>
+      <a href="/index.html" class="sb-link"><span class="sb-icon">🌐</span><span class="sb-label">View Site</span></a>
+      <div class="sb-nav-label" style="margin-top:8px;">ACCOUNT</div>
+    </nav>
+    <div class="sb-footer">
+      <button class="sb-link" onclick="logout()" style="color:#f87171;width:100%;"><span class="sb-icon">🚪</span><span class="sb-label">Sign Out</span></button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="db-main">
+    <header class="db-topbar">
+      <span class="topbar-title">Urgency Alert Centre</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="live-pill">● LIVE</span>
+        <button class="topbar-btn" onclick="loadAlerts()" title="Refresh">🔄</button>
+        <button class="topbar-btn" onclick="logout()" title="Logout">👤</button>
+      </div>
+    </header>
+
+    <div class="db-body">
+      <div class="db-header">
+        <div class="db-header-left">
+          <h1>🚨 Urgency Alert Centre</h1>
+          <p>Real-time monitoring of HIGH and CRITICAL complaints</p>
+        </div>
+      </div>
+
+      <!-- KPI Tiles -->
+      <div class="kpi-grid">
+        <div class="kpi-tile"><div class="kpi-num" id="kpi-critical" style="color:var(--red);">—</div><div class="kpi-lbl">🔴 Critical</div></div>
+        <div class="kpi-tile"><div class="kpi-num" id="kpi-high" style="color:var(--orange);">—</div><div class="kpi-lbl">🟠 High Priority</div></div>
+        <div class="kpi-tile"><div class="kpi-num" id="kpi-unresolved" style="color:var(--accent2);">—</div><div class="kpi-lbl">📋 Unresolved</div></div>
+        <div class="kpi-tile"><div class="kpi-num" id="kpi-resolved" style="color:var(--green);">—</div><div class="kpi-lbl">✅ Resolved</div></div>
+      </div>
+
+      <!-- Charts -->
+      <div class="two-col">
+        <div class="chart-card"><h4>📊 Complaints by Category</h4><div id="cat-bars"><p style="color:var(--muted);font-size:.82rem;">Loading…</p></div></div>
+        <div class="chart-card"><h4>📈 Priority Breakdown</h4><canvas id="priority-chart" height="190"></canvas></div>
+      </div>
+
+      <!-- Feed -->
+      <div class="feed-header">
+        <div class="feed-title">🔴 Live Alert Feed <span class="live-pill" style="font-size:.68rem;">LIVE</span></div>
+        <div class="tab-group">
+          <button class="tab-btn active" id="tab-all"      onclick="filterTab('all')">All Alerts</button>
+          <button class="tab-btn"        id="tab-critical" onclick="filterTab('critical')">🔴 Critical</button>
+          <button class="tab-btn"        id="tab-high"     onclick="filterTab('high')">🟠 High</button>
+          <button class="tab-btn"        id="tab-open"     onclick="filterTab('open')">📋 Open</button>
+        </div>
+      </div>
+      <div id="alert-feed" class="alert-feed"><p style="color:var(--muted);font-size:.88rem;">Loading…</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- SSE Toast -->
+<div class="sse-toast" id="sse-toast">
+  <div class="sse-toast-title">🚨 New Alert</div>
+  <div class="sse-toast-body" id="sse-toast-body"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  if (!API.isAdmin()) window.location.href = '/admin/login.html';
+  function logout() { API.clearSession(); window.location.href = '/admin/login.html'; }
+
+  const adminName = API.getName() || 'Admin';
+  document.getElementById('sb-name').textContent   = adminName;
+  document.getElementById('sb-avatar').textContent = adminName.charAt(0).toUpperCase();
+
+  let collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+  function applyCollapse() {
+    document.getElementById('db-layout').classList.toggle('collapsed', collapsed);
+    document.getElementById('db-sidebar').classList.toggle('collapsed', collapsed);
+  }
+  function toggleSidebar() { collapsed = !collapsed; localStorage.setItem('sidebarCollapsed', collapsed); applyCollapse(); }
+  applyCollapse();
+
+  const CAT_ICONS = {WATER:'💧',ELECTRICITY:'⚡',ROAD:'🛣️',GARBAGE:'🗑️',DRAINAGE:'🌊',STREETLIGHT:'💡',PARK:'🌳',NOISE:'📢',ENCROACHMENT:'🚧',ANIMAL:'🐕',OTHER:'📋'};
+  let allAlerts = [], activeFilter = 'all', priorityChart;
+
+  async function loadAlerts() {
+    try {
+      const [complaintsRes, analyticsRes] = await Promise.all([
+        API.get('/api/v1/complaints?page=0&size=100').catch(()=>({content:[]})),
+        API.get('/api/v1/analytics/summary').catch(()=>({}))
+      ]);
+      const complaints = complaintsRes.content || [];
+      allAlerts = complaints.filter(c => c.priority==='CRITICAL' || c.priority==='HIGH');
+      const bp = analyticsRes.byPriority || {};
+      document.getElementById('kpi-critical').textContent   = bp['CRITICAL']  || allAlerts.filter(a=>a.priority==='CRITICAL').length;
+      document.getElementById('kpi-high').textContent       = bp['HIGH']      || allAlerts.filter(a=>a.priority==='HIGH').length;
+      document.getElementById('kpi-unresolved').textContent = complaints.filter(c=>c.status!=='RESOLVED').length;
+      document.getElementById('kpi-resolved').textContent   = complaints.filter(c=>c.status==='RESOLVED').length;
+      const byCat = {};
+      complaints.forEach(c=>{if(c.category) byCat[c.category]=(byCat[c.category]||0)+1;});
+      renderCatBars(byCat);
+      renderChart(bp, analyticsRes.totalAll||complaints.length);
+      renderFeed();
+    } catch(e) {
+      document.getElementById('alert-feed').innerHTML='<p style="color:var(--muted);">Failed to load. Is the server running?</p>';
+    }
+  }
+
+  function renderFeed() {
+    let items = allAlerts;
+    if (activeFilter==='critical') items=allAlerts.filter(a=>a.priority==='CRITICAL');
+    if (activeFilter==='high')     items=allAlerts.filter(a=>a.priority==='HIGH');
+    if (activeFilter==='open')     items=allAlerts.filter(a=>a.status!=='RESOLVED');
+    const feed = document.getElementById('alert-feed');
+    if (!items.length) {
+      feed.innerHTML='<div class="empty-state"><div class="e-icon">✅</div><p><strong>No alerts in this category.</strong><br>All high-priority complaints are handled.</p></div>';
+      return;
+    }
+    feed.innerHTML = items.map(c=>{
+      const resolved = c.status==='RESOLVED'||c.status==='ESCALATED';
+      return `<div class="alert-card is-${c.priority.toLowerCase()} ${resolved?'is-resolved':''}" onclick="window.open('/track.html?id=${c.id}','_blank')">
+        <div class="alert-icon-wrap">${CAT_ICONS[c.category]||'📋'}</div>
+        <div class="alert-body">
+          <div class="alert-title">
+            #${c.id} — ${esc(c.title||'Complaint')}
+            <span class="pill pill-${c.priority}">${c.priority}</span>
+            <span class="pill pill-status">${(c.status||'').replace(/_/g,' ')}</span>
+          </div>
+          <div class="alert-meta">📁 ${c.category||'GENERAL'} &nbsp;·&nbsp; 🏢 ${c.assignedDeptName||'Unassigned'} &nbsp;·&nbsp; ⏱ ${timeAgo(c.createdAt)}</div>
+          <div class="alert-desc">${esc(c.description||'')}</div>
+        </div>
+        <div class="alert-actions" onclick="event.stopPropagation()">
+          ${!resolved?`
+            <button class="btn-action btn-progress"  onclick="upd(${c.id},'IN_PROGRESS')">▶ Progress</button>
+            <button class="btn-action btn-resolve"   onclick="upd(${c.id},'RESOLVED')">✅ Resolve</button>
+            <button class="btn-action btn-escalate"  onclick="upd(${c.id},'ESCALATED')">🔺 Escalate</button>`
+          :`<span style="font-size:.75rem;color:var(--muted);font-weight:700;">${c.status}</span>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function upd(id, status) {
+    try { await API.patch(`/api/v1/complaints/${id}/status`,{status}); showToast(`#${id} → ${status}`); loadAlerts(); }
+    catch(e) { alert('Failed: '+(e.message||'Unknown')); }
+  }
+
+  function renderCatBars(byCat) {
+    const entries = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+    const max = Math.max(...entries.map(e=>e[1]),1);
+    document.getElementById('cat-bars').innerHTML = entries.length
+      ? entries.map(([cat,cnt])=>`<div class="cat-bar-row"><div class="cat-bar-lbl">${CAT_ICONS[cat]||'📋'} ${cat}</div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(cnt/max*100)}%"></div></div><div class="cat-bar-cnt">${cnt}</div></div>`).join('')
+      : '<p style="color:var(--muted);">No data.</p>';
+  }
+
+  function renderChart(bp, total) {
+    const ctx = document.getElementById('priority-chart');
+    if (priorityChart) priorityChart.destroy();
+    priorityChart = new Chart(ctx,{type:'doughnut',data:{labels:['Critical','High','Medium','Low'],datasets:[{data:[bp.CRITICAL||0,bp.HIGH||0,bp.MEDIUM||0,bp.LOW||0],backgroundColor:['#dc2626','#f97316','#d97706','#16a34a'],borderWidth:2,borderColor:'rgba(25,27,42,1)'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#7a7996',font:{size:11,weight:'700'},padding:12}}},cutout:'65%'}});
+  }
+
+  function filterTab(t) {
+    activeFilter=t;
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tab-'+t).classList.add('active');
+    renderFeed();
+  }
+
+  function showToast(msg) {
+    const t=document.getElementById('sse-toast');
+    document.getElementById('sse-toast-body').textContent=msg;
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
+  }
+
+  try {
+    const es=new EventSource('/api/v1/sse/stream?token='+API.getToken());
+    es.addEventListener('new_complaint',e=>{
+      try{const d=JSON.parse(e.data);if(d.priority==='HIGH'||d.priority==='CRITICAL'){showToast('#'+d.id+' — '+d.title+' ('+d.priority+')');loadAlerts();}
+      }catch(ex){}
+    });
+  }catch(e){}
+
+  function timeAgo(dt){if(!dt)return'—';const m=Math.floor((Date.now()-new Date(dt))/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+  function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  loadAlerts();
+  setInterval(loadAlerts, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — CivicCMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <!-- Google Identity Services (GSI) — required for Google Sign-In -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080810;
+      --surface: rgba(255,255,255,0.035);
+      --surface-hover: rgba(255,255,255,0.065);
+      --border: rgba(255,255,255,0.09);
+      --border-focus: rgba(255,255,255,0.28);
+      --text: #eeedf5;
+      --muted: #7b7a90;
+      --dim: #3e3d52;
+      --btn-bg: #f0effe;
+      --btn-text: #0d0c18;
+      --font: 'DM Sans', sans-serif;
+      --font-head: 'Syne', sans-serif;
+      --r: 12px;
+      --r-pill: 100px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Dot-grid bg ── */
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      position: relative;
+      background-color: var(--bg);
+      background-image: radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+    .page::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 75% 55% at 50% 50%, transparent 35%, var(--bg) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 440px;
+      background: rgba(12,11,22,0.92);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 36px 30px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+      backdrop-filter: blur(20px);
+      animation: rise .5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes rise {
+      from { opacity:0; transform:translateY(32px) scale(.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    /* ── Logo ── */
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .logo-text {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+
+    /* ── Role tabs ── */
+    .role-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 5px;
+      margin-bottom: 28px;
+    }
+    .role-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 6px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all .2s;
+      background: none;
+      font-family: var(--font);
+      color: var(--muted);
+    }
+    .role-tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .role-tab.active {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+      color: var(--text);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+    .tab-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-user  { background: #60a5fa; box-shadow: 0 0 8px rgba(96,165,250,.6); }
+    .dot-admin { background: #f87171; box-shadow: 0 0 8px rgba(248,113,113,.6); }
+    .dot-dept  { background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,.6); }
+    .tab-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* ── Panel heading ── */
+    .panel-head {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .panel-head h1 {
+      font-family: var(--font-head);
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+    .panel-head p {
+      font-size: .84rem;
+      color: var(--muted);
+    }
+
+    /* ── Social btns ── */
+    .social-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .btn-social {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: .88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+      text-decoration: none;
+    }
+    .btn-social:hover {
+      background: var(--surface-hover);
+      border-color: rgba(255,255,255,0.18);
+      color: var(--text);
+    }
+    .g-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 20px;
+      color: var(--dim);
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .2s, background .2s, box-shadow .2s;
+    }
+    .form-control::placeholder { color: var(--dim); }
+    .form-control:focus {
+      border-color: var(--border-focus);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
+    }
+    .pw-wrap { position: relative; }
+    .pw-wrap .form-control { padding-right: 44px; }
+    .pw-eye {
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--dim);
+      font-size: .95rem;
+      padding: 0;
+      line-height: 1;
+      transition: color .2s;
+    }
+    .pw-eye:hover { color: var(--muted); }
+
+    .forgot {
+      display: block;
+      text-align: right;
+      font-size: .78rem;
+      color: var(--dim);
+      text-decoration: none;
+      margin: -6px 0 16px;
+      transition: color .2s;
+    }
+    .forgot:hover { color: var(--muted); }
+
+    /* ── Login button ── */
+    .btn-login {
+      width: 100%;
+      padding: 14px 20px;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      border-radius: var(--r-pill);
+      font-family: var(--font-head);
+      font-size: .92rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: .01em;
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+    }
+    .btn-login:hover  { opacity: .9; box-shadow: 0 6px 28px rgba(255,255,255,0.15); }
+    .btn-login:active { transform: scale(.98); }
+    .btn-login:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .arrow-circle {
+      width: 24px; height: 24px;
+      background: rgba(0,0,0,0.15);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Alert ── */
+    .alert {
+      padding: 10px 14px;
+      border-radius: var(--r);
+      font-size: .82rem;
+      font-weight: 500;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .alert-error   { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.25); color: #f87171; }
+    .alert-success { background: rgba(52,211,153,.1);  border: 1px solid rgba(52,211,153,.25);  color: #34d399; }
+
+    /* ── Footer ── */
+    .card-footer {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: .82rem;
+      color: var(--dim);
+      line-height: 1.9;
+    }
+    .card-footer a {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color .2s;
+    }
+    .card-footer a:hover { color: var(--text); }
+
+    /* ── Admin/Dept — hide social ── */
+    .no-social .social-btns,
+    .no-social .divider { display: none; }
+
+    /* ── Panel transitions ── */
+    .panel { animation: fadeIn .22s ease; }
+    @keyframes fadeIn {
+      from { opacity:0; transform:translateY(6px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ── Modal ── */
+    .modal-bg {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 999;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: #0f0e1e;
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 18px;
+      padding: 30px;
+      width: 90%; max-width: 360px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+      animation: rise .3s ease;
+    }
+    .modal h3 {
+      font-family: var(--font-head);
+      font-size: 1.1rem; margin: 0 0 6px;
+    }
+    .modal p { font-size: .83rem; color: var(--muted); margin: 0 0 18px; }
+    .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
+    .modal-btns button {
+      flex: 1; padding: 11px; border: none; border-radius: var(--r);
+      font-family: var(--font); font-size: .86rem; font-weight: 700;
+      cursor: pointer; transition: opacity .2s;
+    }
+    .modal-btns button:hover { opacity: .85; }
+    .m-confirm { background: var(--btn-bg); color: var(--btn-text); }
+    .m-cancel  { background: rgba(255,255,255,.07); color: var(--text); border: 1px solid var(--border); }
+
+    /* OTP */
+    .otp-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+    .otp-cell {
+      width: 44px; height: 52px;
+      text-align: center;
+      font-size: 1.4rem; font-weight: 700;
+      font-family: var(--font-head);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+    }
+    .otp-cell:focus { border-color: rgba(255,255,255,.35); }
+    .phone-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .phone-code {
+      padding: 12px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Forgot password */
+    .fp-step { }
+    .success-icon { font-size: 2.8rem; text-align: center; margin: 8px 0 12px; }
+
+    @media (max-width: 480px) {
+      .card { padding: 26px 20px 22px; }
+      .panel-head h1 { font-size: 1.5rem; }
+      .tab-label { font-size: .65rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="card" id="main-card">
+
+    <!-- Logo -->
+    <div class="logo">
+      <div class="logo-icon">🏛️</div>
+      <span class="logo-text">CivicCMS</span>
+    </div>
+
+    <!-- Role Tabs -->
+    <div class="role-tabs">
+      <button class="role-tab active" id="tab-user" onclick="switchRole('user')">
+        <span class="tab-dot dot-user"></span>
+        <span class="tab-label">User<br>Login</span>
+      </button>
+      <button class="role-tab" id="tab-admin" onclick="switchRole('admin')">
+        <span class="tab-dot dot-admin"></span>
+        <span class="tab-label">Admin<br>Login</span>
+      </button>
+      <button class="role-tab" id="tab-dept" onclick="switchRole('dept')">
+        <span class="tab-dot dot-dept"></span>
+        <span class="tab-label">Dept.<br>Login</span>
+      </button>
+    </div>
+
+    <!-- ── USER PANEL ── -->
+    <div id="panel-user" class="panel">
+      <div class="panel-head">
+        <h1>User Login</h1>
+        <p>Submit and track your civic complaints</p>
+      </div>
+      <div id="alert-user" class="alert alert-error"></div>
+      <div class="social-btns">
+        <button class="btn-social" onclick="googleSignIn()">
+          <svg class="g-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Sign in with Google
+        </button>
+        <button class="btn-social" onclick="openPhoneModal()">
+          📱 Continue with Phone Number
+        </button>
+      </div>
+      <!-- Hidden container for GSI button fallback (when One Tap is blocked) -->
+      <div id="g-btn-container" style="display:none;"></div>
+      <div class="divider">or</div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input id="u-email" type="email" class="form-control" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="pw-wrap">
+          <input id="u-pass" type="password" class="form-control" placeholder="••••••••" autocomplete="current-password">
+          <button class="pw-eye" type="button" onclick="togglePw('u-pass',this)">👁</button>
+        </div>
+      </div>
+      <a href="#" class="forgot" onclick="openForgot();return false;">Forgot password?</a>
+      <button class="btn-login" id="u-btn" onclick="doLogin('user')">
+        Sign In <span class="arrow-circle">→</span>
+      </button>
+    </div>
+
+    <!-- ── ADMIN PANEL ── -->
+    <div id="panel-admin" class="panel" style="display:none;">
+      <div class="panel-head">
+        <h1>Admin Login</h1>
+        <p>Restricted — authorised administrators only</p>
+      </div>
+      <div id="alert-admin" class="alert alert-error"></div>
+      <div class="form-group">
+        <label>Admin Email</label>
+        <input id="a-email" type="email" class="form-control" placeholder="admin@civic.gov.in" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="pw-wrap">
+          <input id="a-pass" type="password" class="form-control" placeholder="••••••••" autocomplete="current-password">
+          <button class="pw-eye" type="button" onclick="togglePw('a-pass',this)">👁</button>
+        </div>
+      </div>
+      <br>
+      <button class="btn-login" id="a-btn" onclick="doLogin('admin')" style="background:linear-gradient(135deg,#ff6b6b,#ee0979);">
+        Admin Sign In <span class="arrow-circle">→</span>
+      </button>
+    </div>
+
+    <!-- ── DEPT PANEL ── -->
+    <div id="panel-dept" class="panel" style="display:none;">
+      <div class="panel-head">
+        <h1>Department Login</h1>
+        <p>Manage and resolve assigned complaints</p>
+      </div>
+      <div id="alert-dept" class="alert alert-error"></div>
+      <div class="form-group">
+        <label>Department Email</label>
+        <input id="d-email" type="email" class="form-control" placeholder="dept.head@civic.gov.in" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="pw-wrap">
+          <input id="d-pass" type="password" class="form-control" placeholder="••••••••" autocomplete="current-password">
+          <button class="pw-eye" type="button" onclick="togglePw('d-pass',this)">👁</button>
+        </div>
+      </div>
+      <br>
+      <button class="btn-login" id="d-btn" onclick="doLogin('dept')" style="background:linear-gradient(135deg,#11998e,#38ef7d);color:#041a14;">
+        Department Sign In <span class="arrow-circle">→</span>
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="card-footer">
+      Don't have an account? <a href="/register.html">Create one →</a>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /page -->
+
+<!-- ── Phone Modal ── -->
+<div class="modal-bg" id="phone-modal">
+  <div class="modal">
+    <div id="pm-s1">
+      <h3>📱 Phone Sign In</h3>
+      <p>Enter your 10-digit mobile number.</p>
+      <div class="phone-row">
+        <span class="phone-code">🇮🇳 +91</span>
+        <input id="pm-phone" type="tel" class="form-control" placeholder="10-digit number" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+      <div id="pm-alert1" class="alert alert-error"></div>
+      <div class="modal-btns">
+        <button class="m-cancel" onclick="closeModal('phone-modal')">Cancel</button>
+        <button class="m-confirm" onclick="sendOtp()">Send OTP →</button>
+      </div>
+    </div>
+    <div id="pm-s2" style="display:none;">
+      <h3>🔢 Enter OTP</h3>
+      <p>Sent to +91 <b id="pm-disp"></b></p>
+      <div class="otp-row">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-cell" oninput="otpFwd(this,0)" onkeydown="otpBak(event,this,0)">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-cell" oninput="otpFwd(this,1)" onkeydown="otpBak(event,this,1)">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-cell" oninput="otpFwd(this,2)" onkeydown="otpBak(event,this,2)">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-cell" oninput="otpFwd(this,3)" onkeydown="otpBak(event,this,3)">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-cell" oninput="otpFwd(this,4)" onkeydown="otpBak(event,this,4)">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-cell" oninput="otpFwd(this,5)" onkeydown="otpBak(event,this,5)">
+      </div>
+      <div id="pm-alert2" class="alert alert-error"></div>
+      <div class="modal-btns">
+        <button class="m-cancel" onclick="pmBack()">← Back</button>
+        <button class="m-confirm" id="otp-verify-btn" onclick="verifyOtp()">Verify →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Forgot Password Modal ── -->
+<div class="modal-bg" id="forgot-modal">
+  <div class="modal">
+    <div class="fp-step" id="fp-s1">
+      <h3>🔑 Reset Password</h3>
+      <p>Enter your registered email address.</p>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>Email Address</label>
+        <input id="fp-email" type="email" class="form-control" placeholder="your@email.com">
+      </div>
+      <div id="fp-a1" class="alert alert-error"></div>
+      <div class="modal-btns">
+        <button class="m-cancel" onclick="closeModal('forgot-modal')">Cancel</button>
+        <button class="m-confirm" id="fp-btn1" onclick="fpStep1()">Continue →</button>
+      </div>
+    </div>
+    <div class="fp-step" id="fp-s2" style="display:none;">
+      <h3>🔒 New Password</h3>
+      <p>Set a new password for <b id="fp-email-show"></b></p>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>New Password</label>
+        <div class="pw-wrap">
+          <input id="fp-np" type="password" class="form-control" placeholder="Min 8 chars">
+          <button class="pw-eye" type="button" onclick="togglePw('fp-np',this)">👁</button>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>Confirm Password</label>
+        <div class="pw-wrap">
+          <input id="fp-cp" type="password" class="form-control" placeholder="Re-enter">
+          <button class="pw-eye" type="button" onclick="togglePw('fp-cp',this)">👁</button>
+        </div>
+      </div>
+      <div id="fp-a2" class="alert alert-error"></div>
+      <div class="modal-btns">
+        <button class="m-cancel" onclick="fpGoStep(1)">← Back</button>
+        <button class="m-confirm" id="fp-btn2" onclick="fpStep2()">Reset →</button>
+      </div>
+    </div>
+    <div class="fp-step" id="fp-s3" style="display:none;text-align:center;">
+      <div class="success-icon">✅</div>
+      <h3 style="margin-bottom:8px;">Password Reset!</h3>
+      <p style="margin-bottom:16px;">Your password has been updated.</p>
+      <button class="m-confirm" style="width:100%;padding:12px;" onclick="fpDone()">Go to Sign In →</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+/* ── Role switching ───────────────────────────── */
+let _role = 'user';
+function switchRole(r) {
+  _role = r;
+  ['user','admin','dept'].forEach(x => {
+    document.getElementById('tab-'+x).classList.toggle('active', x===r);
+    document.getElementById('panel-'+x).style.display = x===r ? 'block' : 'none';
+  });
+  // clear all alerts
+  document.querySelectorAll('.alert').forEach(a => a.style.display='none');
+}
+
+/* ── Login ────────────────────────────────────── */
+const ROLE_MAP = {
+  user:  { email:'u-email', pass:'u-pass', btn:'u-btn', alert:'alert-user',  need:'USER',      dest:'/index.html' },
+  admin: { email:'a-email', pass:'a-pass', btn:'a-btn', alert:'alert-admin', need:'ADMIN',     dest:'/admin/dashboard.html' },
+  dept:  { email:'d-email', pass:'d-pass', btn:'d-btn', alert:'alert-dept',  need:'DEPT_HEAD', dest:'/dept/dashboard.html' }
+};
+
+async function doLogin(role) {
+  const cfg = ROLE_MAP[role];
+  const alertEl = document.getElementById(cfg.alert);
+  hideAlert(alertEl);
+  const email    = document.getElementById(cfg.email).value.trim();
+  const password = document.getElementById(cfg.pass).value;
+  if (!email || !password) return showErr(alertEl,'Email and password are required.');
+  const btn = document.getElementById(cfg.btn);
+  const origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span style="opacity:.6">Signing in…</span>';
+  try {
+    const data = await API.post('/api/v1/auth/login', { email, password });
+    if (role === 'user'  && data.role !== 'USER')      return showErr(alertEl, 'This account is not a citizen account. Use the correct tab.');
+    if (role === 'admin' && data.role !== 'ADMIN')     return showErr(alertEl, 'This account does not have admin privileges.');
+    if (role === 'dept'  && data.role !== 'DEPT_HEAD') return showErr(alertEl, 'This account is not a department head account.');
+    API.setSession(data.token, data.name, data.email, data.role);
+    btn.innerHTML = '✓ Redirecting…';
+    window.location.href = cfg.dest;
+  } catch(e) {
+    showErr(alertEl, e.message || 'Invalid credentials. Please try again.');
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
+  }
+}
+
+/* ── Google Sign-In (OAuth 2.0 via Google Identity Services) ─── */
+//
+// SETUP (one-time, takes ~5 min):
+// 1. Go to https://console.cloud.google.com/
+// 2. Create a project → APIs & Services → Credentials
+// 3. Create OAuth 2.0 Client ID → Web Application
+// 4. Add your domain to "Authorized JavaScript origins"
+//    (e.g. http://localhost:8080 for local dev)
+// 5. Add your redirect URI to "Authorized redirect URIs"
+//    (e.g. http://localhost:8080/login.html)
+// 6. Paste the Client ID below ↓
+//
+const GOOGLE_CLIENT_ID = '875846842795-qd8gt3r38d83uilm2m61hjtpmf00i776.apps.googleusercontent.com';
+
+function googleSignIn() {
+  const alertEl = document.getElementById('alert-user');
+
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
+    showErr(alertEl, '⚙️ Google Client ID not configured. See setup instructions in login.html.');
+    return;
+  }
+
+  if (typeof google === 'undefined' || !google.accounts) {
+    showErr(alertEl, 'Google Sign-In library failed to load. Check your internet connection.');
+    return;
+  }
+
+  // Initialize Google client and open the One-Tap / popup prompt
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+  });
+
+  // Open the Google sign-in popup
+  google.accounts.id.prompt((notification) => {
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      // Fallback: render a standard button flow via renderButton helper
+      // This happens when One Tap is suppressed (e.g. third-party cookies blocked).
+      // We render a hidden div and trigger a button click.
+      const container = document.getElementById('g-btn-container');
+      if (container) {
+        container.innerHTML = '';
+        google.accounts.id.renderButton(container, {
+          theme: 'filled_black',
+          size: 'large',
+          width: 280,
+          text: 'signin_with',
+        });
+        // Auto-click the rendered button
+        setTimeout(() => container.querySelector('div[role=button]')?.click(), 100);
+      }
+    }
+  });
+}
+
+// Called by Google GSI with a credential object containing a JWT id_token
+async function handleGoogleCredential(response) {
+  const alertEl = document.getElementById('alert-user');
+  const btn = document.querySelector('.btn-social');
+
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+
+    // Decode the JWT id_token (header.payload.signature — no verification needed client-side)
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    const name    = payload.name  || payload.email.split('@')[0];
+    const email   = payload.email || '';
+    const sub     = payload.sub   || '';  // Google's unique user ID
+
+    if (!email) throw new Error('Google did not return an email address.');
+
+    // Send to backend — backend stores/looks up user, returns JWT
+    const data = await API.post('/api/v1/auth/social-login', {
+      name:       name,
+      email:      email,
+      provider:   'GOOGLE',
+      providerId: sub,
+    });
+
+    // Role check — Google login is for CITIZEN accounts only
+    if (data.role === 'ADMIN') {
+      showErr(alertEl, 'Admin accounts cannot use Google Sign-In. Use email/password.');
+      return;
+    }
+    if (data.role === 'DEPT_HEAD') {
+      showErr(alertEl, 'Department accounts cannot use Google Sign-In. Use email/password.');
+      return;
+    }
+
+    // Store session and redirect to dashboard
+    API.setSession(data.token, data.name, data.email, data.role);
+    window.location.href = '/index.html';
+
+  } catch (e) {
+    showErr(alertEl, e.message || 'Google Sign-In failed. Please try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Continue with Google'; }
+  }
+}
+/* ── Hidden container for GSI button fallback ─────────────── */
+
+/* ── Phone OTP ───────────────────────────────── */
+let _phone = '';
+function openPhoneModal() {
+  document.getElementById('pm-s1').style.display = 'block';
+  document.getElementById('pm-s2').style.display = 'none';
+  document.getElementById('pm-phone').value = '';
+  hideAlert(document.getElementById('pm-alert1'));
+  document.getElementById('phone-modal').classList.add('open');
+  setTimeout(() => document.getElementById('pm-phone').focus(), 100);
+}
+function pmBack() {
+  document.getElementById('pm-s1').style.display = 'block';
+  document.getElementById('pm-s2').style.display = 'none';
+}
+async function sendOtp() {
+  const phone = document.getElementById('pm-phone').value.trim();
+  const a = document.getElementById('pm-alert1');
+  hideAlert(a);
+  if (!/^\d{10}$/.test(phone)) return showErr(a,'Enter a valid 10-digit number.');
+  try {
+    await API.post('/api/v1/auth/otp/send', { phone });
+    _phone = phone;
+    document.getElementById('pm-disp').textContent = phone;
+    document.querySelectorAll('.otp-cell').forEach(i=>i.value='');
+    document.getElementById('pm-s1').style.display = 'none';
+    document.getElementById('pm-s2').style.display = 'block';
+    setTimeout(()=>document.querySelectorAll('.otp-cell')[0].focus(),80);
+  } catch(e) { showErr(a, e.message||'Failed to send OTP.'); }
+}
+async function verifyOtp() {
+  const otp = [...document.querySelectorAll('.otp-cell')].map(i=>i.value).join('');
+  const a = document.getElementById('pm-alert2');
+  hideAlert(a);
+  if (otp.length!==6) return showErr(a,'Enter the complete 6-digit OTP.');
+  const btn = document.getElementById('otp-verify-btn');
+  btn.disabled=true; btn.textContent='Verifying…';
+  try {
+    const data = await API.post('/api/v1/auth/otp/verify', { phone:_phone, otp });
+    API.setSession(data.token, data.name, data.email, data.role);
+    closeModal('phone-modal');
+    window.location.href = '/index.html';
+  } catch(e) {
+    showErr(a, e.message||'Invalid or expired OTP.');
+    btn.disabled=false; btn.textContent='Verify →';
+  }
+}
+function otpFwd(el,i) {
+  el.value=el.value.replace(/\D/g,'');
+  if (el.value && i<5) document.querySelectorAll('.otp-cell')[i+1].focus();
+  if ([...document.querySelectorAll('.otp-cell')].every(c=>c.value)) verifyOtp();
+}
+function otpBak(e,el,i) {
+  if (e.key==='Backspace' && !el.value && i>0) document.querySelectorAll('.otp-cell')[i-1].focus();
+}
+
+/* ── Forgot password ─────────────────────────── */
+let _fpEmail='';
+function openForgot() {
+  fpGoStep(1);
+  ['fp-email','fp-np','fp-cp'].forEach(id=>{try{document.getElementById(id).value='';}catch(e){}});
+  hideAlert(document.getElementById('fp-a1'));
+  hideAlert(document.getElementById('fp-a2'));
+  document.getElementById('forgot-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('fp-email').focus(),80);
+}
+function fpGoStep(n) {
+  [1,2,3].forEach(i=>document.getElementById('fp-s'+i).style.display=i===n?'block':'none');
+}
+async function fpStep1() {
+  const email=document.getElementById('fp-email').value.trim();
+  const a=document.getElementById('fp-a1');
+  hideAlert(a);
+  if (!email||!email.includes('@')) return showErr(a,'Enter a valid email address.');
+  const btn=document.getElementById('fp-btn1');
+  btn.disabled=true; btn.textContent='Checking…';
+  try {
+    await API.post('/api/v1/auth/login',{email,password:'___check___'});
+  } catch(e) { /* expected */ }
+  _fpEmail=email;
+  document.getElementById('fp-email-show').textContent=email;
+  fpGoStep(2);
+  btn.disabled=false; btn.textContent='Continue →';
+}
+async function fpStep2() {
+  const np=document.getElementById('fp-np').value;
+  const cp=document.getElementById('fp-cp').value;
+  const a=document.getElementById('fp-a2');
+  hideAlert(a);
+  if (!np||np.length<8)    return showErr(a,'Password must be at least 8 characters.');
+  if (!/[A-Za-z]/.test(np)||!/\d/.test(np)) return showErr(a,'Include both letters and numbers.');
+  if (np!==cp)             return showErr(a,'Passwords do not match.');
+  const btn=document.getElementById('fp-btn2');
+  btn.disabled=true; btn.textContent='Resetting…';
+  try {
+    await API.post('/api/v1/auth/reset-password',{email:_fpEmail,newPassword:np});
+    fpGoStep(3);
+  } catch(e) {
+    showErr(a,e.message||'Reset failed. Please try again.');
+    btn.disabled=false; btn.textContent='Reset →';
+  }
+}
+function fpDone() {
+  closeModal('forgot-modal');
+  const cfg=ROLE_MAP['user'];
+  document.getElementById(cfg.email).value=_fpEmail;
+  document.getElementById(cfg.pass).value='';
+  _fpEmail='';
+}
+
+/* ── Helpers ─────────────────────────────────── */
+function togglePw(id,btn) {
+  const inp=document.getElementById(id);
+  const hide=inp.type==='password';
+  inp.type=hide?'text':'password';
+  btn.textContent=hide?'🙈':'👁';
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function showErr(el,msg) { el.textContent='⚠ '+msg; el.className='alert alert-error'; el.style.display='block'; }
+function hideAlert(el)   { if(el) el.style.display='none'; }
+
+/* ── Global keyboard & modal close ──────────────*/
+document.querySelectorAll('.modal-bg').forEach(m=>
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); })
+);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('open'));
+  if(e.key==='Enter' && !document.querySelector('.modal-bg.open')) doLogin(_role);
+});
+
+/* ── Auto-switch role from URL ?role=admin|dept ─ */
+(function(){
+  const p=new URLSearchParams(location.search).get('role');
+  if(p==='admin'||p==='dept') switchRole(p);
+})();
+
+/* ── Auto-redirect if already logged in ─────── */
+try {
+  if(typeof API!=='undefined' && API.isLogged()) {
+    const r=localStorage.getItem('role');
+    if(r==='ADMIN') window.location.href='/admin/dashboard.html';
+    else if(r==='DEPT_HEAD') window.location.href='/dept/dashboard.html';
+    else window.location.href='/index.html';
+  }
+} catch(e){}
+</script>
+</body>
+</html>

@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>/* Prevent flash of wrong theme */
+    (function(){var t=localStorage.getItem('civicTheme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#5b5ef6">
+  <title>AI Chatbot — CivicCMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       CivicBot — Dashboard-grade dark UI
+       ALL existing class names preserved — only CSS changed
+       ═══════════════════════════════════════════════════════════ */
+
+    :root {
+      --cb-bg:         #0b0d16;
+      --cb-nav:        #10121e;
+      --cb-surface:    #161827;
+      --cb-surface2:   #1d2035;
+      --cb-surface3:   #222438;
+      --cb-border:     rgba(255,255,255,0.07);
+      --cb-border2:    rgba(255,255,255,0.12);
+      --cb-text:       #edeaf8;
+      --cb-text2:      #c4bfe0;
+      --cb-muted:      #6e6a8a;
+      --cb-accent:     #5b5ef6;
+      --cb-accent2:    #818cf8;
+      --cb-accent-lt:  rgba(91,94,246,0.14);
+      --cb-green:      #22c55e;
+      --cb-red:        #ef4444;
+      --cb-orange:     #f97316;
+      --cb-yellow:     #eab308;
+      --cb-radius:     12px;
+      --cb-radius-lg:  16px;
+      --cb-radius-xl:  20px;
+      --cb-shadow:     0 24px 60px rgba(0,0,0,0.5);
+      --cb-font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* ── RESET ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--cb-font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── PAGE SHELL ──────────────────────────────── */
+    .chatbot-page {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--cb-bg);
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════
+       TOP NAVBAR
+    ══════════════════════════════════════════════ */
+    .navbar {
+      flex-shrink: 0;
+      height: 58px;
+      background: var(--cb-nav);
+      border-bottom: 1px solid var(--cb-border);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      padding: 0 18px;
+      gap: 14px;
+      position: relative;
+      z-index: 100;
+    }
+
+    /* Brand */
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .brand-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, var(--cb-accent), #a78bfa);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .navbar-brand span {
+      font-size: .92rem;
+      font-weight: 800;
+      color: var(--cb-text);
+    }
+    .brand-accent { color: var(--cb-accent2); }
+
+    /* Nav links */
+    .navbar-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+      justify-content: center;
+    }
+    .navbar-links a {
+      color: var(--cb-muted);
+      text-decoration: none;
+      font-size: .82rem;
+      font-weight: 500;
+      padding: 6px 11px;
+      border-radius: 8px;
+      transition: all .18s;
+      white-space: nowrap;
+    }
+    .navbar-links a:hover { background: rgba(255,255,255,0.05); color: var(--cb-text2); }
+    .navbar-links a[href="/chatbot.html"] { color: var(--cb-accent2); background: var(--cb-accent-lt); }
+
+    /* Gear / theme buttons */
+    #civic-settings-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .theme-toggle-btn,
+    #civic-gear-btn {
+      width: 32px;
+      height: 32px;
+      background: var(--cb-surface2);
+      border: 1px solid var(--cb-border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: .9rem;
+      color: var(--cb-muted);
+      transition: all .18s;
+    }
+    .theme-toggle-btn:hover, #civic-gear-btn:hover {
+      background: var(--cb-surface3);
+      border-color: var(--cb-border2);
+      color: var(--cb-text);
+    }
+
+    /* Settings panel */
+    #civic-settings-panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      background: var(--cb-surface);
+      border: 1px solid var(--cb-border2);
+      border-radius: var(--cb-radius-lg);
+      padding: 10px 8px;
+      min-width: 190px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+      z-index: 999;
+      animation: panelDrop .18s ease;
+    }
+    @keyframes panelDrop { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+    #civic-settings-panel.open { display: block; }
+
+    .settings-section-title {
+      font-size: .62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--cb-muted);
+      padding: 6px 10px 4px;
+    }
+    .settings-divider { height: 1px; background: var(--cb-border); margin: 6px 4px; }
+
+    .theme-option,
+    .lang-option,
+    .logout-option {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 11px;
+      border-radius: var(--cb-radius);
+      cursor: pointer;
+      font-size: .83rem;
+      font-weight: 500;
+      color: var(--cb-text2);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: var(--cb-font);
+      transition: all .15s;
+    }
+    .theme-option:hover, .lang-option:hover { background: var(--cb-accent-lt); color: var(--cb-accent2); }
+    .lang-option.active { background: var(--cb-accent-lt); color: var(--cb-accent2); }
+    .logout-option { color: #f87171; }
+    .logout-option:hover { background: rgba(239,68,68,.1); }
+    .lchk, .lang-check { margin-left: auto; font-size: .8rem; color: var(--cb-accent2); }
+
+    /* ══════════════════════════════════════════════
+       ALERT STRIP
+    ══════════════════════════════════════════════ */
+    .alert-strip {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      background: rgba(239,68,68,.08);
+      border-bottom: 1px solid rgba(239,68,68,.22);
+      font-size: .8rem;
+      color: #fca5a5;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .alert-strip.show { display: flex; }
+
+    /* ══════════════════════════════════════════════
+       CHATBOT LAYOUT
+    ══════════════════════════════════════════════ */
+    .chatbot-layout {
+      flex: 1;
+      display: flex;
+      padding: 14px 16px 14px;
+      gap: 14px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ══════════════════════════════════════════════
+       CHAT PANEL — main container
+    ══════════════════════════════════════════════ */
+    .chat-panel {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--cb-surface);
+      border: 1px solid var(--cb-border);
+      border-radius: var(--cb-radius-xl);
+      box-shadow: var(--cb-shadow);
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════
+       CHAT HEADER
+    ══════════════════════════════════════════════ */
+    .chat-header {
+      padding: 0 20px;
+      height: 62px;
+      border-bottom: 1px solid var(--cb-border);
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      background: var(--cb-nav);
+      flex-shrink: 0;
+      position: relative;
+    }
+    /* Subtle gradient accent line at top */
+    .chat-header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--cb-accent), #a78bfa, #ec4899, var(--cb-accent));
+      background-size: 300% 100%;
+      animation: hdrGlow 4s linear infinite;
+    }
+    @keyframes hdrGlow { 0%{background-position:0% 0} 100%{background-position:300% 0} }
+
+    .chat-header-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--cb-accent), #a78bfa);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(91,94,246,0.45);
+    }
+
+    .chat-header-info h3 {
+      font-size: .9rem;
+      font-weight: 700;
+      margin: 0 0 2px;
+      color: var(--cb-text);
+      letter-spacing: -0.01em;
+    }
+    .chat-header-info p {
+      font-size: .69rem;
+      color: var(--cb-muted);
+      margin: 0;
+    }
+
+    .chat-header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .chat-header-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .72rem;
+      color: var(--cb-muted);
+      background: var(--cb-surface2);
+      border: 1px solid var(--cb-border);
+      padding: 4px 11px;
+      border-radius: 20px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cb-green);
+      animation: pulse-dot 2s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(0.85)} }
+
+    /* ── Lang Switcher ── */
+    .lang-switcher { position: relative; }
+    .lang-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      background: var(--cb-surface2);
+      border: 1px solid var(--cb-border2);
+      border-radius: 20px;
+      color: var(--cb-text2);
+      font-family: var(--cb-font);
+      font-size: .74rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .18s;
+      white-space: nowrap;
+    }
+    .lang-btn:hover { background: var(--cb-surface3); border-color: var(--cb-accent); color: var(--cb-accent2); }
+    .lang-btn.open  { border-color: var(--cb-accent); }
+    .lang-arrow { font-size: .58rem; opacity: .7; transition: transform .2s; }
+    .lang-btn.open .lang-arrow { transform: rotate(180deg); }
+
+    .lang-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--cb-surface);
+      border: 1px solid var(--cb-border2);
+      border-radius: var(--cb-radius-lg);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+      padding: 7px;
+      min-width: 165px;
+      z-index: 300;
+    }
+    .lang-dropdown.open { display: block; animation: panelDrop .15s ease; }
+
+    .lang-opt {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 13px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: .83rem;
+      font-weight: 600;
+      color: var(--cb-text2);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: var(--cb-font);
+      transition: all .15s;
+    }
+    .lang-opt:hover  { background: var(--cb-accent-lt); color: var(--cb-accent2); }
+    .lang-opt.active { background: var(--cb-accent-lt); color: var(--cb-accent2); }
+    .lang-opt .lchk  { margin-left: auto; font-size: .8rem; color: var(--cb-accent2); }
+
+    /* ══════════════════════════════════════════════
+       MESSAGES AREA
+    ══════════════════════════════════════════════ */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+      background: var(--cb-bg);
+
+      /* Custom scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: var(--cb-surface3) transparent;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-track { background: transparent; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--cb-surface3); border-radius: 4px; }
+
+    /* ── Message Rows ── */
+    .msg {
+      display: flex;
+      align-items: flex-end;
+      gap: 9px;
+      animation: msgIn .28s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes msgIn { from{opacity:0;transform:translateY(14px) scale(0.97)} to{opacity:1;transform:none} }
+
+    .msg.bot  { align-self: flex-start; max-width: 84%; }
+    .msg.user { align-self: flex-end;   flex-direction: row-reverse; max-width: 72%; }
+
+    /* ── Avatars ── */
+    .msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .9rem;
+    }
+    .bot  .msg-avatar {
+      background: linear-gradient(135deg, var(--cb-accent), #a78bfa);
+      box-shadow: 0 4px 12px rgba(91,94,246,0.35);
+    }
+    .user .msg-avatar {
+      background: var(--cb-surface2);
+      border: 1px solid var(--cb-border2);
+    }
+
+    /* ── Bubbles ── */
+    .msg-bubble {
+      padding: 11px 15px;
+      border-radius: var(--cb-radius-lg);
+      font-size: .855rem;
+      line-height: 1.58;
+    }
+    .bot .msg-bubble {
+      background: var(--cb-surface);
+      border: 1px solid var(--cb-border);
+      border-bottom-left-radius: 4px;
+      color: var(--cb-text);
+    }
+    .user .msg-bubble {
+      background: linear-gradient(135deg, var(--cb-accent) 0%, #7c3aed 100%);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 6px 20px rgba(91,94,246,0.38);
+    }
+    .bot .msg-bubble a { color: var(--cb-accent2); text-decoration: underline; text-underline-offset: 2px; }
+    .bot .msg-bubble a:hover { color: #c4b5fd; }
+
+    /* ── Typing indicator ── */
+    .typing-bubble {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 4px 2px;
+    }
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cb-muted);
+      animation: tdBounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: .18s; }
+    .typing-dot:nth-child(3) { animation-delay: .36s; }
+    @keyframes tdBounce { 0%,80%,100%{transform:translateY(0);opacity:.5} 40%{transform:translateY(-6px);opacity:1} }
+
+    /* ══════════════════════════════════════════════
+       RESULT CARD — AI analysis output
+    ══════════════════════════════════════════════ */
+    .result-card {
+      background: var(--cb-surface2);
+      border: 1px solid var(--cb-border2);
+      border-radius: var(--cb-radius-lg);
+      padding: 16px;
+      margin-top: 10px;
+      min-width: 270px;
+    }
+    .result-card-title {
+      font-weight: 800;
+      font-size: .88rem;
+      color: var(--cb-text);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .result-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--cb-border);
+      font-size: .8rem;
+    }
+    .result-row:last-of-type { border-bottom: none; }
+    .result-label {
+      font-weight: 700;
+      color: var(--cb-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-size: .67rem;
+      min-width: 80px;
+      padding-top: 1px;
+    }
+    .result-value { color: var(--cb-text2); flex: 1; line-height: 1.45; }
+    .result-desc {
+      font-size: .79rem;
+      color: var(--cb-muted);
+      background: var(--cb-accent-lt);
+      border-radius: var(--cb-radius);
+      padding: 10px 12px;
+      margin-top: 10px;
+      line-height: 1.55;
+      border-left: 3px solid rgba(91,94,246,0.5);
+    }
+
+    /* Urgency badges */
+    .badge-urgency {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .urgency-LOW      { background: rgba(34,197,94,.13);  color: #4ade80; border: 1px solid rgba(34,197,94,.28); }
+    .urgency-MEDIUM   { background: rgba(234,179,8,.13);  color: #fde047; border: 1px solid rgba(234,179,8,.28); }
+    .urgency-HIGH     { background: rgba(249,115,22,.13); color: #fb923c; border: 1px solid rgba(249,115,22,.28); }
+    .urgency-CRITICAL { background: rgba(239,68,68,.13);  color: #f87171; border: 1px solid rgba(239,68,68,.28); animation: critPulse 1.5s infinite; }
+    @keyframes critPulse { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 0 3px rgba(239,68,68,.18)} }
+
+    .dup-alert {
+      background: rgba(234,179,8,.1);
+      border: 1px solid rgba(234,179,8,.25);
+      border-radius: var(--cb-radius);
+      padding: 9px 12px;
+      font-size: .79rem;
+      color: #fde047;
+      margin-top: 9px;
+      display: flex;
+      gap: 7px;
+    }
+
+    /* Action buttons inside card */
+    .btn-submit {
+      width: 100%;
+      margin-top: 13px;
+      padding: 11px;
+      background: linear-gradient(135deg, var(--cb-accent), #7c3aed);
+      color: #fff;
+      border: none;
+      border-radius: var(--cb-radius);
+      font-family: var(--cb-font);
+      font-size: .86rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: opacity .18s, transform .1s;
+      box-shadow: 0 6px 18px rgba(91,94,246,.35);
+    }
+    .btn-submit:hover   { opacity: .88; }
+    .btn-submit:active  { transform: scale(.97); }
+    .btn-submit:disabled{ opacity: .42; cursor: not-allowed; }
+
+    .btn-form {
+      width: 100%;
+      margin-top: 7px;
+      padding: 9px;
+      background: var(--cb-surface3);
+      color: var(--cb-accent2);
+      border: 1px solid rgba(91,94,246,.3);
+      border-radius: var(--cb-radius);
+      font-family: var(--cb-font);
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .btn-form:hover { background: var(--cb-accent-lt); border-color: var(--cb-accent); }
+
+    /* ══════════════════════════════════════════════
+       QUICK CHIPS
+    ══════════════════════════════════════════════ */
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--cb-border);
+      background: var(--cb-surface);
+      flex-shrink: 0;
+    }
+    .quick-chip {
+      padding: 6px 13px;
+      border-radius: 20px;
+      background: var(--cb-surface2);
+      border: 1px solid var(--cb-border);
+      font-family: var(--cb-font);
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--cb-text2);
+      cursor: pointer;
+      transition: all .18s;
+      white-space: nowrap;
+    }
+    .quick-chip:hover {
+      background: var(--cb-accent-lt);
+      border-color: rgba(91,94,246,.4);
+      color: var(--cb-accent2);
+      transform: translateY(-1px);
+    }
+
+    /* ══════════════════════════════════════════════
+       INPUT BAR
+    ══════════════════════════════════════════════ */
+    .chat-input-bar {
+      padding: 12px 14px;
+      border-top: 1px solid var(--cb-border);
+      background: var(--cb-surface);
+      flex-shrink: 0;
+    }
+
+    /* Attachment preview */
+    .attach-preview {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      background: var(--cb-accent-lt);
+      border: 1px solid rgba(91,94,246,.35);
+      border-radius: var(--cb-radius);
+      padding: 5px 12px;
+      font-size: .76rem;
+      color: var(--cb-accent2);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .attach-preview.show { display: flex; }
+    .remove-attach { cursor: pointer; color: var(--cb-muted); margin-left: auto; font-size: .82rem; transition: color .15s; }
+    .remove-attach:hover { color: var(--cb-red); }
+
+    /* Recording bar */
+    .rec-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.25);
+      border-radius: var(--cb-radius);
+      padding: 8px 14px;
+      margin-bottom: 9px;
+    }
+    .rec-bar.show { display: flex; }
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cb-red);
+      flex-shrink: 0;
+      animation: recPulse 1s infinite;
+    }
+    @keyframes recPulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .rec-label { font-size: .84rem; font-weight: 600; color: #f87171; flex: 1; }
+    .rec-timer { font-family: 'Courier New', monospace; font-size: .9rem; font-weight: 700; color: #f87171; }
+    .rec-stop-btn {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: none; background: var(--cb-red); color: #fff;
+      font-size: .7rem; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+    }
+
+    /* Voice confirm */
+    .voice-confirm {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: var(--cb-surface2);
+      border: 1px solid var(--cb-border2);
+      border-radius: var(--cb-radius);
+      padding: 8px 12px;
+      margin-bottom: 9px;
+    }
+    .voice-confirm.show { display: flex; }
+    .voice-confirm-text { font-size: .83rem; color: var(--cb-muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vc-send    { background: var(--cb-accent); color: #fff; border: none; border-radius: 20px; padding: 5px 14px; font-size: .82rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    .vc-send:hover { opacity: .88; }
+    .vc-discard { background: none; border: 1px solid var(--cb-border2); border-radius: 20px; padding: 5px 12px; font-size: .82rem; color: var(--cb-muted); cursor: pointer; transition: all .15s; }
+    .vc-discard:hover { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); color: #f87171; }
+
+    /* Input row */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    /* Textarea */
+    .chat-textarea {
+      flex: 1;
+      resize: none;
+      overflow: hidden;
+      padding: 10px 14px;
+      border: 1.5px solid var(--cb-border2);
+      border-radius: var(--cb-radius-lg);
+      font-family: var(--cb-font);
+      font-size: .875rem;
+      color: var(--cb-text);
+      background: var(--cb-surface2);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      min-height: 44px;
+      max-height: 110px;
+      line-height: 1.52;
+      caret-color: var(--cb-accent2);
+    }
+    .chat-textarea::placeholder { color: var(--cb-muted); }
+    .chat-textarea:focus {
+      border-color: var(--cb-accent);
+      box-shadow: 0 0 0 3px rgba(91,94,246,.18);
+      background: var(--cb-surface);
+    }
+
+    /* Icon buttons (attach + voice) */
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      border: 1.5px solid var(--cb-border2);
+      background: var(--cb-surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all .18s;
+      font-size: 1rem;
+      flex-shrink: 0;
+      color: var(--cb-muted);
+    }
+    .icon-btn:hover {
+      background: var(--cb-accent-lt);
+      border-color: rgba(91,94,246,.4);
+      color: var(--cb-accent2);
+    }
+    .icon-btn.recording {
+      background: rgba(239,68,68,.1);
+      border-color: rgba(239,68,68,.4);
+      color: #f87171;
+      animation: recPulse 1s infinite;
+    }
+
+    /* Send button */
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      border: none;
+      background: linear-gradient(135deg, var(--cb-accent), #7c3aed);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: .95rem;
+      flex-shrink: 0;
+      transition: opacity .15s, transform .1s, box-shadow .15s;
+      box-shadow: 0 4px 14px rgba(91,94,246,0.45);
+    }
+    .send-btn:hover  { opacity: .9; box-shadow: 0 6px 20px rgba(91,94,246,.55); }
+    .send-btn:active { transform: scale(.92); }
+    .send-btn:disabled { opacity: .38; cursor: not-allowed; box-shadow: none; }
+
+    #image-input { display: none; }
+
+    /* ══════════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════════ */
+    @media (max-width: 820px) {
+      .chatbot-layout  { padding: 10px; }
+      .navbar-links a  { font-size: .76rem; padding: 5px 8px; }
+    }
+    @media (max-width: 600px) {
+      .navbar-links    { display: none; }
+      .chat-messages   { padding: 14px 12px; }
+      .quick-chip      { font-size: .7rem; padding: 5px 10px; }
+      .chat-header-info p { display: none; }
+      .chat-header-status { display: none; }
+    }
+    @media (max-width: 380px) {
+      .chatbot-layout  { padding: 6px; }
+      .chat-header     { padding: 0 13px; }
+    }
+
+    /* ══════════════════════════════════════════════
+       EMPTY STATE / WELCOME GRAPHIC
+    ══════════════════════════════════════════════ */
+    .chat-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 12px;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .chat-empty-orb {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #5b5ef6, #a78bfa, #ec4899, #f97316, #5b5ef6);
+      animation: orbSpin 8s linear infinite;
+      box-shadow: 0 0 40px rgba(91,94,246,.45);
+    }
+    @keyframes orbSpin { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
+
+    /* ══════════════════════════════════════════════
+       LIGHT THEME OVERRIDES (via data-theme="light")
+    ══════════════════════════════════════════════ */
+    [data-theme="light"] {
+      --cb-bg:       #f4f5fa;
+      --cb-nav:      #ffffff;
+      --cb-surface:  #ffffff;
+      --cb-surface2: #f0f1f8;
+      --cb-surface3: #e8eaf5;
+      --cb-border:   rgba(0,0,0,0.07);
+      --cb-border2:  rgba(0,0,0,0.12);
+      --cb-text:     #1a1d2e;
+      --cb-text2:    #3d3f58;
+      --cb-muted:    #8b8dad;
+    }
+    [data-theme="light"] .chat-messages { background: #f4f5fa; }
+    [data-theme="light"] .user .msg-bubble { box-shadow: 0 4px 14px rgba(91,94,246,.22); }
+  </style>
+</head>
+<body class="chatbot-page">
+
+<!-- ═══════════ NAVBAR ═══════════ -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">C</div>
+    <span><span class="brand-accent">Civic</span>CMS</span>
+  </div>
+
+  <div class="navbar-links">
+    <a href="/index.html"        id="nav-home">Home</a>
+    <a href="/chatbot.html"      id="nav-chatbot">🤖 AI Chatbot</a>
+    <a href="/submit.html"       id="nav-submit">Submit</a>
+    <a href="/track.html"        id="nav-track">Track</a>
+    <a href="/history.html"      id="nav-my">My Complaints</a>
+    <a href="/feedback-wall.html" id="nav-reviews">💬 Reviews</a>
+  </div>
+
+  <div id="civic-settings-wrap" style="display:flex;align-items:center;gap:6px;">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="CivicTheme.toggle()" title="Toggle theme">🌙</button>
+    <button id="civic-gear-btn" onclick="LangManager.toggleSettings(event)" title="Settings">⚙️</button>
+    <div id="civic-settings-panel">
+      <div class="settings-section-title">🌐 Language</div>
+      <button class="lang-option" id="langopt-en" onclick="switchChatLang('en');LangManager.toggleSettings(event)"><span>🇬🇧</span><span>English</span><span class="lchk" id="lcheck-en"></span></button>
+      <button class="lang-option" id="langopt-ta" onclick="switchChatLang('ta');LangManager.toggleSettings(event)"><span>🇮🇳</span><span>தமிழ்</span><span class="lchk" id="lcheck-ta"></span></button>
+      <button class="lang-option" id="langopt-hi" onclick="switchChatLang('hi');LangManager.toggleSettings(event)"><span>🇮🇳</span><span>हिंदी</span><span class="lchk" id="lcheck-hi"></span></button>
+      <div class="settings-divider"></div>
+      <button class="logout-option" onclick="LangManager.doLogout()"><span>🚪</span><span>Logout</span></button>
+    </div>
+  </div>
+</nav>
+
+<!-- Alert strip (shown for critical/high urgency) -->
+<div class="alert-strip" id="alert-strip">🚨 <span id="alert-strip-text"></span></div>
+
+<!-- ═══════════ MAIN LAYOUT ═══════════ -->
+<div class="chatbot-layout">
+  <div class="chat-panel">
+
+    <!-- HEADER -->
+    <div class="chat-header">
+      <div class="chat-header-avatar">🤖</div>
+      <div class="chat-header-info">
+        <h3 id="chat-header-title">CivicBot — AI Assistant</h3>
+        <p  id="chat-header-sub">Powered by Claude AI · Analyzes, classifies &amp; routes your complaints</p>
+      </div>
+      <div class="chat-header-right">
+        <!-- Language switcher in header -->
+        <div class="lang-switcher">
+          <button class="lang-btn" id="langBtnToggle" onclick="toggleLangDropdown(event)">
+            <span id="langBtnFlag">🇬🇧</span>
+            <span id="langBtnLabel">EN</span>
+            <span class="lang-arrow">▼</span>
+          </button>
+          <div class="lang-dropdown" id="langDropdown">
+            <button class="lang-opt" id="lopt-en" onclick="switchChatLang('en')">🇬🇧 English  <span class="lchk" id="lchk-en">✓</span></button>
+            <button class="lang-opt" id="lopt-ta" onclick="switchChatLang('ta')">🇮🇳 தமிழ்   <span class="lchk" id="lchk-ta"></span></button>
+            <button class="lang-opt" id="lopt-hi" onclick="switchChatLang('hi')">🇮🇳 हिंदी  <span class="lchk" id="lchk-hi"></span></button>
+          </div>
+        </div>
+        <!-- Status pill -->
+        <div class="chat-header-status">
+          <div class="status-dot"></div>
+          <span id="status-label">Online</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="chat-messages" id="messages"></div>
+
+    <!-- QUICK CHIPS -->
+    <div class="quick-chips" id="quick-chips"></div>
+
+    <!-- INPUT BAR -->
+    <div class="chat-input-bar">
+
+      <!-- Attachment preview -->
+      <div class="attach-preview" id="attach-preview">
+        📷 <span id="attach-name">image.jpg</span>
+        <span class="remove-attach" onclick="removeAttachment()">✕</span>
+      </div>
+
+      <!-- Recording bar -->
+      <div class="rec-bar" id="rec-bar">
+        <div class="rec-dot"></div>
+        <span class="rec-label">Recording… speak now</span>
+        <span class="rec-timer" id="rec-timer">0:00</span>
+        <button class="rec-stop-btn" onclick="stopVoice()">■</button>
+      </div>
+
+      <!-- Voice confirm -->
+      <div class="voice-confirm" id="voice-confirm">
+        <span class="voice-confirm-text" id="voice-confirm-text">""</span>
+        <button class="vc-discard" onclick="discardVoice()">✕ Discard</button>
+        <button class="vc-send"    onclick="sendVoice()">Send ➤</button>
+      </div>
+
+      <!-- Main input row -->
+      <div class="input-row">
+        <button class="icon-btn" onclick="document.getElementById('image-input').click()" title="Upload image">📷</button>
+        <input type="file" id="image-input" accept="image/*" onchange="handleImageUpload(this)">
+        <button class="icon-btn" id="voice-btn" onclick="toggleVoice()" title="Voice input">🎤</button>
+        <textarea
+          class="chat-textarea"
+          id="chat-input"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+          placeholder="Describe your civic issue…"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+  </div><!-- /chat-panel -->
+</div><!-- /chatbot-layout -->
+
+<!-- ════════════════════════════
+     ALL ORIGINAL JS — UNTOUCHED
+════════════════════════════ -->
+<script src="/js/cms.js"></script>
+<script src="/js/lang.js"></script>
+<script src="/js/api.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════
+   CivicBot — Full-Screen Chat (no sidebar)
+   ═══════════════════════════════════════════════════════ */
+
+const CHAT_I18N = {
+  en: {
+    voiceCode:'en-IN', flag:'🇬🇧', shortLabel:'EN',
+    headerTitle:'CivicBot — AI Assistant',
+    headerSub:'Powered by Claude AI · Analyzes, classifies & routes your complaints',
+    statusOnline:'Online',
+    placeholder:"Describe your civic issue… (e.g. 'Water pipe burst near school')",
+    voiceTitle:'🎤 Voice: English (en-IN)',
+    welcome: n => `👋 <strong>Hello${n?', '+n:''}!</strong><br><br>I'm <strong>CivicBot</strong>, your AI-powered civic complaint assistant. Tell me about any issue — water, electricity, roads, garbage — and I'll:<br><br>✅ Generate a detailed complaint<br>🎯 Classify category &amp; urgency<br>🔍 Check for duplicate complaints<br>🏢 Route to the right department<br><br>Use the quick buttons below or type your issue! 💬`,
+    chips:[{icon:'💧',label:'Water Issue',text:'Water supply issue in my area'},{icon:'⚡',label:'Power Cut',text:'Power outage since yesterday'},{icon:'🛣️',label:'Road Damage',text:'Large pothole on the main road'},{icon:'🗑️',label:'Garbage',text:'Garbage not collected for 3 days'},{icon:'💡',label:'Streetlight',text:'Streetlight not working near my house'},{icon:'🌊',label:'Drainage',text:'Drain is blocked causing flooding'}],
+    loginPrompt:'🔐 Please <a href="/login.html"><strong>log in</strong></a> first to submit complaints.',
+    sessionExpired:'🔐 Session expired. Please <a href="/login.html"><strong>log in again</strong></a>.',
+    analysisError:'⚠️ AI analysis failed. Please try again or <a href="/submit.html">use the form</a>.',
+    voiceNoSupport:'🎤 Voice not supported. Please use Chrome or Edge.',
+    imageAttached:(n,d)=>`📷 Image: <strong>${n}</strong><br>🔍 Detected: <em>${d}</em><br><br>Add more details or send now!`,
+    analysisComplete:'✅ Analysis complete! Here\'s what I detected:',
+    duplicateFound:'⚠️ I found a very similar complaint already in the system:',
+    submitBtn: d => d?'🔗 Submit as Duplicate':'📨 Submit Complaint',
+    useForm:'📋 Use Full Form Instead',
+    submitting:'⏳ Submitting…', submitted:'✅ Submitted!',
+    submitSuccess:(id,st)=>`🎉 <strong>Complaint #${id} submitted successfully!</strong><br><br>📌 Status: <strong>${st||'SUBMITTED'}</strong><br><br>Track it at <a href="/track.html?id=${id}"><strong>Track #${id}</strong></a> 🔍`,
+    submitFail: m => `❌ Submission failed: ${m||'Please try again.'}`,
+    alertCritical:'🚨 CRITICAL complaint detected! Admin will be notified immediately.',
+    alertHigh:'⚠️ HIGH urgency complaint. Will be escalated to department head.',
+    cardTitle:'📋 AI Analysis Complete',
+    lTitle:'Title', lCat:'Category', lDept:'Department', lReason:'Reason',
+    suggested:'💡 <strong>Suggested:</strong> ',
+  },
+  ta: {
+    voiceCode:'ta-IN', flag:'🇮🇳', shortLabel:'தமிழ்',
+    headerTitle:'CivicBot — AI உதவியாளர்',
+    headerSub:'Claude AI இயக்கப்படுகிறது · புகார்களை பகுப்பாய்வு செய்து வழிநடத்துகிறது',
+    statusOnline:'இணைக்கப்பட்டுள்ளது',
+    placeholder:'உங்கள் பிரச்சனையை விவரிக்கவும்…',
+    voiceTitle:'🎤 குரல்: தமிழ் (ta-IN)',
+    welcome: n => `👋 <strong>வணக்கம்${n?', '+n:''}!</strong><br><br>நான் <strong>CivicBot</strong>, உங்கள் AI குடிமக்கள் புகார் உதவியாளர். நீர், மின்சாரம், சாலைகள், குப்பை — எந்த பிரச்சனையும் சொல்லுங்கள்:<br><br>✅ விரிவான புகாரை உருவாக்குவேன்<br>🎯 வகை &amp; அவசரத்தை தீர்மானிப்பேன்<br>🔍 நகல் புகார்களை சரிபார்ப்பேன்<br>🏢 சரியான துறைக்கு அனுப்புவேன்<br><br>கீழே உள்ள பொத்தான்களை பயன்படுத்தவும்! 💬`,
+    chips:[{icon:'💧',label:'நீர் பிரச்சனை',text:'என் பகுதியில் நீர் வழங்கல் பிரச்சனை'},{icon:'⚡',label:'மின் தடை',text:'நேற்று முதல் மின் தடை'},{icon:'🛣️',label:'சாலை சேதம்',text:'பிரதான சாலையில் பெரிய குழி'},{icon:'🗑️',label:'குப்பை',text:'3 நாட்களாக குப்பை அகற்றவில்லை'},{icon:'💡',label:'தெரு விளக்கு',text:'என் வீட்டு அருகே தெரு விளக்கு எரியவில்லை'},{icon:'🌊',label:'வடிகால்',text:'வடிகால் அடைத்து வெள்ளம் வருகிறது'}],
+    loginPrompt:'🔐 புகார் சமர்ப்பிக்க முதலில் <a href="/login.html"><strong>உள்நுழையவும்</strong></a>.',
+    sessionExpired:'🔐 அமர்வு காலாவதியானது. <a href="/login.html"><strong>மீண்டும் உள்நுழையவும்</strong></a>.',
+    analysisError:'⚠️ AI பகுப்பாய்வு தோல்வி. மீண்டும் முயற்சிக்கவும்.',
+    voiceNoSupport:'🎤 குரல் உள்ளீடு ஆதரிக்கப்படவில்லை.',
+    imageAttached:(n,d)=>`📷 படம்: <strong>${n}</strong><br>🔍 கண்டறிந்தது: <em>${d}</em><br><br>மேலும் விவரங்கள் சேர்க்கவும்!`,
+    analysisComplete:'✅ பகுப்பாய்வு முடிந்தது!',
+    duplicateFound:'⚠️ கணினியில் ஏற்கனவே இதே போன்ற புகார் உள்ளது:',
+    submitBtn: d => d?'🔗 நகலாக சமர்ப்பிக்கவும்':'📨 புகார் சமர்ப்பிக்கவும்',
+    useForm:'📋 முழு படிவத்தை பயன்படுத்தவும்',
+    submitting:'⏳ சமர்ப்பிக்கிறது…', submitted:'✅ சமர்ப்பிக்கப்பட்டது!',
+    submitSuccess:(id,st)=>`🎉 <strong>புகார் #${id} வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது!</strong><br><br><a href="/track.html?id=${id}"><strong>புகார் #${id} கண்காணிக்கவும்</strong></a> 🔍`,
+    submitFail: m => `❌ சமர்ப்பிப்பு தோல்வி: ${m||'மீண்டும் முயற்சிக்கவும்.'}`,
+    alertCritical:'🚨 மிகவும் அவசர புகார்!',
+    alertHigh:'⚠️ அதிக முன்னுரிமை புகார்.',
+    cardTitle:'📋 AI பகுப்பாய்வு முடிந்தது',
+    lTitle:'தலைப்பு', lCat:'வகை', lDept:'துறை', lReason:'காரணம்',
+    urgencyLabel:{CRITICAL:'மிகவும் அவசரம்',HIGH:'அதிக முன்னுரிமை',MEDIUM:'நடுத்தர முன்னுரிமை',LOW:'குறைந்த முன்னுரிமை'},
+    suggested:'💡 <strong>பரிந்துரை:</strong> ',
+  },
+  hi: {
+    voiceCode:'hi-IN', flag:'🇮🇳', shortLabel:'हिंदी',
+    headerTitle:'CivicBot — AI सहायक',
+    headerSub:'Claude AI द्वारा संचालित · शिकायतों का विश्लेषण, वर्गीकरण और रूटिंग',
+    statusOnline:'ऑनलाइन',
+    placeholder:'अपनी समस्या बताएं…',
+    voiceTitle:'🎤 आवाज़: हिंदी (hi-IN)',
+    welcome: n => `👋 <strong>नमस्ते${n?', '+n:''}!</strong><br><br>मैं <strong>CivicBot</strong> हूँ, आपका AI नागरिक शिकायत सहायक। पानी, बिजली, सड़क, कचरा — कोई भी समस्या बताएं:<br><br>✅ विस्तृत शिकायत तैयार करूँगा<br>🎯 श्रेणी &amp; प्राथमिकता तय करूँगा<br>🔍 डुप्लिकेट शिकायत जांचूँगा<br>🏢 सही विभाग को भेजूँगा<br><br>नीचे दिए बटन दबाएं! 💬`,
+    chips:[{icon:'💧',label:'पानी की समस्या',text:'मेरे क्षेत्र में पानी की समस्या है'},{icon:'⚡',label:'बिजली गुल',text:'कल से बिजली गुल है'},{icon:'🛣️',label:'सड़क खराब',text:'मुख्य सड़क पर बड़ा गड्ढा है'},{icon:'🗑️',label:'कचरा',text:'3 दिनों से कचरा नहीं उठाया'},{icon:'💡',label:'स्ट्रीट लाइट',text:'मेरे घर के पास स्ट्रीट लाइट नहीं जल रही'},{icon:'🌊',label:'नाली',text:'नाली बंद है, पानी भर रहा है'}],
+    loginPrompt:'🔐 शिकायत दर्ज करने के लिए पहले <a href="/login.html"><strong>लॉग इन करें</strong></a>।',
+    sessionExpired:'🔐 सत्र समाप्त हो गया। <a href="/login.html"><strong>फिर से लॉग इन करें</strong></a>।',
+    analysisError:'⚠️ AI विश्लेषण विफल। फिर से प्रयास करें।',
+    voiceNoSupport:'🎤 वॉयस इनपुट समर्थित नहीं।',
+    imageAttached:(n,d)=>`📷 छवि: <strong>${n}</strong><br>🔍 पहचाना: <em>${d}</em><br><br>अधिक विवरण जोड़ें!`,
+    analysisComplete:'✅ विश्लेषण पूरा!',
+    duplicateFound:'⚠️ सिस्टम में पहले से ऐसी शिकायत मौजूद है:',
+    submitBtn: d => d?'🔗 डुप्लिकेट के रूप में सबमिट करें':'📨 शिकायत सबमिट करें',
+    useForm:'📋 पूरा फॉर्म उपयोग करें',
+    submitting:'⏳ सबमिट हो रहा है…', submitted:'✅ सबमिट हो गया!',
+    submitSuccess:(id,st)=>`🎉 <strong>शिकायत #${id} सफलतापूर्वक सबमिट!</strong><br><br><a href="/track.html?id=${id}"><strong>शिकायत #${id} ट्रैक करें</strong></a> 🔍`,
+    submitFail: m => `❌ सबमिट विफल: ${m||'फिर से प्रयास करें।'}`,
+    alertCritical:'🚨 अति गंभीर शिकायत!',
+    alertHigh:'⚠️ उच्च प्राथमिकता शिकायत।',
+    cardTitle:'📋 AI विश्लेषण पूर्ण',
+    lTitle:'शीर्षक', lCat:'श्रेणी', lDept:'विभाग', lReason:'कारण',
+    urgencyLabel:{CRITICAL:'अति आवश्यक',HIGH:'उच्च प्राथमिकता',MEDIUM:'मध्यम प्राथमिकता',LOW:'कम प्राथमिकता'},
+    suggested:'💡 <strong>सुझाव:</strong> ',
+  }
+};
+
+const CAT_TRANSLATIONS={ta:{WATER:'நீர்',ELECTRICITY:'மின்சாரம்',ROAD:'சாலை',GARBAGE:'குப்பை',DRAINAGE:'வடிகால்',STREETLIGHT:'தெரு விளக்கு',PARK:'பூங்கா',NOISE:'சத்தம்',ENCROACHMENT:'ஆக்கிரமிப்பு',ANIMAL:'விலங்கு',OTHER:'பிற'},hi:{WATER:'पानी',ELECTRICITY:'बिजली',ROAD:'सड़क',GARBAGE:'कचरा',DRAINAGE:'नाली',STREETLIGHT:'स्ट्रीट लाइट',PARK:'पार्क',NOISE:'शोर',ENCROACHMENT:'अतिक्रमण',ANIMAL:'पशु',OTHER:'अन्य'}};
+const DEPT_TRANSLATIONS={ta:{'Water Supply Department':'நீர் வழங்கல் துறை','Electricity Department':'மின்சாரத் துறை','Roads & Infrastructure Department':'சாலைகள் & உள்கட்டமைப்பு துறை','Sanitation & Waste Management':'சுகாதாரம் & கழிவு மேலாண்மை','Drainage & Sewage Department':'வடிகால் & கழிவுநீர் துறை','Street Lighting Department':'தெரு விளக்கு துறை','Parks & Recreation Department':'பூங்காக்கள் துறை','Public Health & Safety Department':'பொது சுகாதாரம் துறை','Town Planning Department':'நகர திட்டமிடல் துறை','Animal Welfare Department':'விலங்கு நல துறை','General Administration':'பொது நிர்வாகம்'},hi:{'Water Supply Department':'जल आपूर्ति विभाग','Electricity Department':'विद्युत विभाग','Roads & Infrastructure Department':'सड़क एवं अवसंरचना विभाग','Sanitation & Waste Management':'स्वच्छता विभाग','Drainage & Sewage Department':'जल निकासी विभाग','Street Lighting Department':'स्ट्रीट लाइटिंग विभाग','Parks & Recreation Department':'पार्क विभाग','Public Health & Safety Department':'सार्वजनिक स्वास्थ्य विभाग','Town Planning Department':'नगर नियोजन विभाग','Animal Welfare Department':'पशु कल्याण विभाग','General Administration':'सामान्य प्रशासन'}};
+const TITLE_TRANSLATIONS={ta:{WATER:'நீர் வழங்கல் பிரச்சனை',ELECTRICITY:'மின் தடை புகார்',ROAD:'சாலை நிலை பிரச்சனை',GARBAGE:'குப்பை அகற்றல் பிரச்சனை',DRAINAGE:'வடிகால் அடைப்பு புகார்',STREETLIGHT:'தெரு விளக்கு செயலற்றது',PARK:'பூங்கா பராமரிப்பு பிரச்சனை',NOISE:'சத்த மாசு புகார்',ENCROACHMENT:'ஆக்கிரமிப்பு புகார்',ANIMAL:'தெரு விலங்கு புகார்',OTHER:'குடிமைப் பிரச்சனை புகார்'},hi:{WATER:'जल आपूर्ति समस्या',ELECTRICITY:'बिजली कटौती शिकायत',ROAD:'सड़क की स्थिति समस्या',GARBAGE:'कचरा निपटान समस्या',DRAINAGE:'नाली अवरोध शिकायत',STREETLIGHT:'स्ट्रीट लाइट काम नहीं',PARK:'पार्क रखरखाव समस्या',NOISE:'ध्वनि प्रदूषण',ENCROACHMENT:'अतिक्रमण शिकायत',ANIMAL:'आवारा पशु शिकायत',OTHER:'नागरिक समस्या शिकायत'}};
+const DESC_TRANSLATIONS={ta:{WATER:t=>`நீர் வழங்கல் பிரச்சனை: ${t}`,ELECTRICITY:t=>`மின்சார பிரச்சனை: ${t}`,ROAD:t=>`சாலை பிரச்சனை: ${t}`,GARBAGE:t=>`குப்பை பிரச்சனை: ${t}`,DRAINAGE:t=>`வடிகால் பிரச்சனை: ${t}`,STREETLIGHT:t=>`தெரு விளக்கு பிரச்சனை: ${t}`,PARK:t=>`பூங்கா பிரச்சனை: ${t}`,NOISE:t=>`சத்த மாசு பிரச்சனை: ${t}`,ENCROACHMENT:t=>`ஆக்கிரமிப்பு புகார்: ${t}`,ANIMAL:t=>`விலங்கு பிரச்சனை: ${t}`,OTHER:t=>`பொது பிரச்சனை: ${t}`},hi:{WATER:t=>`जल समस्या: ${t}`,ELECTRICITY:t=>`बिजली समस्या: ${t}`,ROAD:t=>`सड़क समस्या: ${t}`,GARBAGE:t=>`कचरा समस्या: ${t}`,DRAINAGE:t=>`नाली समस्या: ${t}`,STREETLIGHT:t=>`स्ट्रीट लाइट समस्या: ${t}`,PARK:t=>`पार्क समस्या: ${t}`,NOISE:t=>`शोर समस्या: ${t}`,ENCROACHMENT:t=>`अतिक्रमण: ${t}`,ANIMAL:t=>`पशु समस्या: ${t}`,OTHER:t=>`नागरिक समस्या: ${t}`}};
+const URGENCY_REASON_TRANSLATIONS={ta:{CRITICAL:'இந்த பிரச்சனை உடனடி பாதுகாப்பு ஆபத்தை ஏற்படுத்துகிறது.',HIGH:'இந்த பிரச்சனை நீண்ட நேரமாக தொடர்கிறது.',MEDIUM:'இந்த பிரச்சனை அன்றாட வாழ்க்கையை பாதிக்கிறது.',LOW:'வழக்கமான பராமரிப்பு பிரச்சனை.'},hi:{CRITICAL:'यह समस्या तत्काल खतरा है।',HIGH:'यह समस्या काफी समय से चल रही है।',MEDIUM:'यह दैनिक जीवन को प्रभावित करती है।',LOW:'सामान्य रखरखाव समस्या।'}};
+const ACTION_TRANSLATIONS={ta:d=>`${d} துறைக்கு SLA கட்டமைப்பிற்குள் தீர்வுக்கு அனுப்பவும்.`,hi:d=>`${d} को SLA के भीतर समाधान के लिए असाइन करें।`};
+const DUP_MSG_TRANSLATIONS={ta:(cat,id)=>`அருகில் இதே போன்ற புகார் (#${id}) பதிவு செய்யப்பட்டுள்ளது.`,hi:(cat,id)=>`पास में ऐसी शिकायत (#${id}) दर्ज है।`};
+
+async function translateResult(result) {
+  if(currentLang==='en')return result;
+  const lang=currentLang,cat=(result.category||'OTHER').toUpperCase(),urg=(result.urgency||'LOW').toUpperCase();
+  const categoryLabel=CAT_TRANSLATIONS[lang]?.[cat]||result.category;
+  const urgencyLabel=T().urgencyLabel?.[urg]||result.urgency;
+  const department=DEPT_TRANSLATIONS[lang]?.[result.department]||result.department;
+  const title=TITLE_TRANSLATIONS[lang]?.[cat]||result.title;
+  const userText=result.detailedDescription?result.detailedDescription.replace(/^Citizen has reported a [^:]+: /,'').replace(/\. The matter.*$/,'').trim():'';
+  const descFn=DESC_TRANSLATIONS[lang]?.[cat];
+  const detailedDescription=descFn?descFn(userText||result.title):result.detailedDescription;
+  const urgencyReason=URGENCY_REASON_TRANSLATIONS[lang]?.[urg]||result.urgencyReason;
+  const suggestedAction=ACTION_TRANSLATIONS[lang]?ACTION_TRANSLATIONS[lang](department):result.suggestedAction;
+  let duplicateMessage=result.duplicateMessage;
+  if(result.isDuplicate&&result.duplicateMessage){const idMatch=result.duplicateMessage.match(/#(\d+)/);const dupId=idMatch?idMatch[1]:'?';const fn=DUP_MSG_TRANSLATIONS[lang];if(fn)duplicateMessage=fn(cat,dupId);}
+  return{...result,title,categoryLabel,urgencyLabel,department,detailedDescription,urgencyReason,suggestedAction,duplicateMessage};
+}
+
+let pendingResult=null,attachedImage=null,isRecording=false,recognition=null;
+let currentLang=localStorage.getItem('chatbotLang')||localStorage.getItem('civicLang')||'en';
+
+function T(){return CHAT_I18N[currentLang]||CHAT_I18N.en;}
+
+function applyLang(){
+  const t=T();
+  document.getElementById('chat-header-title').textContent=t.headerTitle;
+  document.getElementById('chat-header-sub').textContent=t.headerSub;
+  document.getElementById('status-label').textContent=t.statusOnline;
+  document.getElementById('langBtnFlag').textContent=t.flag;
+  document.getElementById('langBtnLabel').textContent=t.shortLabel;
+  document.getElementById('chat-input').placeholder=t.placeholder;
+  document.getElementById('voice-btn').title=t.voiceTitle;
+  ['en','ta','hi'].forEach(c=>{
+    const el=document.getElementById('lchk-'+c);if(el)el.textContent=c===currentLang?'✓':'';
+    const opt=document.getElementById('lopt-'+c);if(opt)opt.classList.toggle('active',c===currentLang);
+    const ck2=document.getElementById('lcheck-'+c);if(ck2)ck2.textContent=c===currentLang?'✓':'';
+    const opt2=document.getElementById('langopt-'+c);if(opt2)opt2.classList.toggle('active',c===currentLang);
+  });
+  renderChips();try{LangManager.applyNav();}catch(e){}
+}
+
+function renderChips(){
+  document.getElementById('quick-chips').innerHTML=T().chips.map(c=>`<span class="quick-chip" onclick="quickSend('${esc(c.text)}')">${c.icon} ${c.label}</span>`).join('');
+}
+
+function toggleLangDropdown(e){
+  e.stopPropagation();
+  const dd=document.getElementById('langDropdown'),btn=document.getElementById('langBtnToggle');
+  const open=dd.classList.toggle('open');btn.classList.toggle('open',open);
+}
+function closeLangDropdown(){document.getElementById('langDropdown')?.classList.remove('open');document.getElementById('langBtnToggle')?.classList.remove('open');}
+document.addEventListener('click',closeLangDropdown);
+
+function switchChatLang(code){
+  if(!CHAT_I18N[code])return;
+  currentLang=code;localStorage.setItem('chatbotLang',code);localStorage.setItem('civicLang',code);
+  closeLangDropdown();applyLang();retranslateBotMessages();
+}
+
+function retranslateBotMessages(){
+  const t=T(),name=escHtml(localStorage.getItem('name')||'');
+  const MAP={'welcome':t.welcome(name),'loginPrompt':t.loginPrompt,'sessionExpired':t.sessionExpired,'analysisError':t.analysisError};
+  document.querySelectorAll('.msg.bot[data-msg-key]').forEach(el=>{
+    const key=el.getAttribute('data-msg-key');
+    if(MAP[key]!==undefined){const bubble=el.querySelector('.msg-bubble');if(bubble)bubble.innerHTML=MAP[key];}
+  });
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  try{LangManager.injectSwitcher();}catch(e){}
+  try{CivicTheme.apply(CivicTheme.get());}catch(e){}
+  applyLang();
+  const _w=addBotMessage(T().welcome(escHtml(localStorage.getItem('name')||'')));
+  _w.setAttribute('data-msg-key','welcome');
+});
+
+// ── Chat UI ──────────────────────────────────────────────
+function addBotMessage(html,extra=''){
+  const el=document.createElement('div');el.className='msg bot';
+  el.innerHTML=`<div class="msg-avatar">🤖</div><div><div class="msg-bubble">${html}</div>${extra}</div>`;
+  document.getElementById('messages').appendChild(el);scrollToBottom();return el;
+}
+function addUserMessage(text){
+  const el=document.createElement('div');el.className='msg user';
+  el.innerHTML=`<div class="msg-avatar">👤</div><div class="msg-bubble">${escHtml(text)}</div>`;
+  document.getElementById('messages').appendChild(el);scrollToBottom();
+}
+function addTyping(){
+  const el=document.createElement('div');el.className='msg bot';el.id='typing-msg';
+  el.innerHTML=`<div class="msg-avatar">🤖</div><div class="msg-bubble"><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  document.getElementById('messages').appendChild(el);scrollToBottom();
+}
+function removeTyping(){document.getElementById('typing-msg')?.remove();}
+
+// ── Send ──────────────────────────────────────────────────
+async function sendMessage(){
+  const input=document.getElementById('chat-input'),text=input.value.trim();
+  const sendBtn=document.getElementById('send-btn');
+  if(!text&&!attachedImage)return;
+  if(!API.isLogged()){const _lp=addBotMessage(T().loginPrompt);_lp.setAttribute('data-msg-key','loginPrompt');return;}
+  addUserMessage(text||(attachedImage?'📷 '+attachedImage.description:''));
+  input.value='';autoResize(input);sendBtn.disabled=true;
+  document.getElementById('quick-chips').style.display='none';
+  addTyping();
+  try{
+    const payload={text:text||attachedImage?.description||'Image uploaded',imageDescription:attachedImage?.description||null,location:null,lat:null,lng:null};
+    try{const pos=await getPosition();payload.lat=pos.coords.latitude;payload.lng=pos.coords.longitude;}catch(e){payload.lat=11.1271;payload.lng=78.6569;}
+    const result=await API.post('/api/ai/analyze',payload);
+    removeTyping();
+    let transEl=null;
+    if(currentLang!=='en'){
+      const transMsg=currentLang==='ta'?'🌐 மொழிபெயர்க்கிறது…':'🌐 अनुवाद हो रहा है…';
+      transEl=document.createElement('div');transEl.className='msg bot';transEl.id='trans-msg';
+      transEl.innerHTML=`<div class="msg-avatar">🤖</div><div class="msg-bubble"><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>&nbsp;<span style="font-size:.8rem;color:var(--cb-muted);">${transMsg}</span></div>`;
+      document.getElementById('messages').appendChild(transEl);scrollToBottom();
+    }
+    const translated=await translateResult(result);
+    if(transEl)transEl.remove();
+    pendingResult={...result,lat:payload.lat,lng:payload.lng};
+    showAnalysisResult(translated);
+  }catch(err){
+    removeTyping();
+    const _em=addBotMessage(err.status===401||err.status===403?T().sessionExpired:T().analysisError);
+    _em.setAttribute('data-msg-key',err.status===401||err.status===403?'sessionExpired':'analysisError');
+  }finally{sendBtn.disabled=false;removeAttachment();}
+}
+
+function showAnalysisResult(r){
+  const t=T();
+  if(r.urgency==='HIGH'||r.urgency==='CRITICAL'){
+    document.getElementById('alert-strip').classList.add('show');
+    document.getElementById('alert-strip-text').textContent=r.urgency==='CRITICAL'?t.alertCritical:t.alertHigh;
+  }
+  const dupHtml=r.isDuplicate?`<div class="dup-alert">⚠️ ${escHtml(r.duplicateMessage||'Similar complaint exists.')}</div>`:'';
+  const cardHtml=`<div class="result-card"><div class="result-card-title">${t.cardTitle}<span class="badge-urgency urgency-${r.urgency}">${urgencyIcon(r.urgency)} ${r.urgencyLabel||r.urgency}</span></div><div class="result-row"><span class="result-label">${t.lTitle}</span><span class="result-value"><strong>${escHtml(r.title)}</strong></span></div><div class="result-row"><span class="result-label">${t.lCat}</span><span class="result-value">${categoryIcon(r.category)} ${r.categoryLabel||r.category}</span></div><div class="result-row"><span class="result-label">${t.lDept}</span><span class="result-value">🏢 ${escHtml(r.department)}</span></div>${r.urgencyReason?`<div class="result-row"><span class="result-label">${t.lReason}</span><span class="result-value" style="color:var(--cb-muted);font-size:.76rem;">${escHtml(r.urgencyReason)}</span></div>`:''}<div class="result-desc">📝 ${escHtml(r.detailedDescription)}</div>${dupHtml}${r.suggestedAction?`<div style="font-size:.76rem;color:#4ade80;margin-top:8px;background:rgba(74,222,128,.08);padding:8px 11px;border-radius:10px;border-left:3px solid rgba(74,222,128,.3);">${t.suggested}${escHtml(r.suggestedAction)}</div>`:''}<button class="btn-submit" id="submit-btn" style="${r.isDuplicate?'background:linear-gradient(135deg,#d97706,#b45309);':''}" onclick="submitComplaint()">${t.submitBtn(r.isDuplicate)}</button><button class="btn-form" onclick="openInForm()">${t.useForm}</button></div>`;
+  addBotMessage(r.isDuplicate?t.duplicateFound:t.analysisComplete,cardHtml);
+}
+
+// ── Submit ──────────────────────────────────────────────
+async function submitComplaint(){
+  if(!pendingResult)return;
+  const t=T();
+  const btn=document.getElementById('submit-btn');
+  if(!btn)return;
+  btn.disabled=true;btn.textContent=t.submitting;
+  try{
+    const fd=new FormData();
+    fd.append('title',pendingResult.title||'Civic Issue');
+    fd.append('description',pendingResult.detailedDescription||pendingResult.title||'');
+    fd.append('category',pendingResult.category||'OTHER');
+    fd.append('lat',String(pendingResult.lat||11.1271));
+    fd.append('lng',String(pendingResult.lng||78.6569));
+    fd.append('address','Reported via AI Chatbot');
+    fd.append('priority',pendingResult.urgency||'MEDIUM');
+    if(attachedImage?.file) fd.append('photo',attachedImage.file);
+    const saved=await API.postForm('/api/v1/complaints',fd);
+    pendingResult=null;
+    btn.textContent=t.submitted;btn.style.background='#16a34a';
+    addBotMessage(t.submitSuccess(saved.id,saved.status));
+  }catch(err){
+    btn.disabled=false;btn.textContent=T().submitBtn(false);
+    addBotMessage(T().submitFail(err.message||'Server error. Please try again.'));
+  }
+}
+
+// ── Voice ─────────────────────────────────────────────────
+let recTimerInterval=null,recSeconds=0,pendingTranscript='';
+function toggleVoice(){if(isRecording)stopVoice();else startVoice();}
+
+function startVoice(){
+  const t=T(), btn=document.getElementById('voice-btn');
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ addBotMessage(t.voiceNoSupport); return; }
+
+  // Clean up any previous instance
+  if(recognition){ try{ recognition.abort(); }catch(e){} recognition=null; }
+
+  pendingTranscript='';
+  document.getElementById('voice-confirm').classList.remove('show');
+  document.getElementById('chat-input').value='';
+
+  recognition = new SR();
+
+  // KEY FIXES:
+  // 1. Use the correct BCP-47 language code from the selected language
+  recognition.lang = t.voiceCode;
+  // 2. continuous=false: single-utterance mode is far more accurate.
+  //    continuous=true was the root cause — it re-evaluates past audio and
+  //    produces garbled results like "what a management" for "water management"
+  recognition.continuous = false;
+  // 3. interimResults=true for live preview in the textarea
+  recognition.interimResults = true;
+  // 4. maxAlternatives=3 — pick highest-confidence result
+  recognition.maxAlternatives = 3;
+
+  let finalTranscript = '';
+
+  recognition.onstart = () => {
+    isRecording=true; btn.classList.add('recording');
+    btn.title = 'Listening… click to stop';
+    document.getElementById('rec-bar').classList.add('show');
+    recSeconds=0; document.getElementById('rec-timer').textContent='0:00';
+    recTimerInterval=setInterval(()=>{
+      recSeconds++;
+      const m=Math.floor(recSeconds/60),s=recSeconds%60;
+      document.getElementById('rec-timer').textContent=m+':'+String(s).padStart(2,'0');
+    },1000);
+  };
+
+  recognition.onresult = e => {
+    // Process only new results — avoid re-accumulating old ones
+    let interimText = '';
+    for(let i=0; i<e.results.length; i++){
+      const result = e.results[i];
+      if(result.isFinal){
+        // Pick the highest-confidence alternative for accuracy
+        let best = result[0];
+        for(let j=1; j<result.length; j++){
+          if(result[j].confidence > best.confidence) best = result[j];
+        }
+        finalTranscript += best.transcript + ' ';
+      } else {
+        interimText += result[0].transcript;
+      }
+    }
+    const displayText = (finalTranscript + interimText).trim();
+    if(displayText){
+      pendingTranscript = displayText;
+      document.getElementById('chat-input').value = displayText;
+      autoResize(document.getElementById('chat-input'));
+    }
+  };
+
+  recognition.onspeechend = () => {
+    // Auto-stop when speech ends (works with continuous=false too)
+    recognition.stop();
+  };
+
+  recognition.onend = () => _voiceEnded();
+
+  recognition.onerror = e => {
+    if(e.error==='no-speech'){ _voiceEnded(); return; }
+    if(e.error==='aborted') return;
+    if(e.error==='not-allowed'){
+      addBotMessage('🎤 Microphone access denied. Please allow microphone in your browser settings.');
+      _voiceEnded(); return;
+    }
+    if(e.error==='network'){
+      addBotMessage('🌐 Voice recognition requires internet. Please check your connection.');
+      _voiceEnded(); return;
+    }
+    _voiceEnded();
+  };
+
+  try { recognition.start(); }
+  catch(err){ console.error('Voice start error:',err); isRecording=false; }
+}
+
+function stopVoice(){
+  if(recognition){ try{ recognition.stop(); }catch(e){ try{recognition.abort();}catch(e2){} } }
+}
+function _voiceEnded(){
+  if(!isRecording) return;
+  isRecording=false; clearInterval(recTimerInterval);
+  const btn=document.getElementById('voice-btn');
+  btn.classList.remove('recording'); btn.title='Voice input';
+  document.getElementById('rec-bar').classList.remove('show');
+  const text=(pendingTranscript||document.getElementById('chat-input').value||'').trim();
+  if(text){
+    document.getElementById('voice-confirm-text').textContent='"'+text+'"';
+    document.getElementById('voice-confirm').classList.add('show');
+  }
+}
+function sendVoice(){
+  document.getElementById('voice-confirm').classList.remove('show');
+  if(document.getElementById('chat-input').value.trim()) sendMessage();
+}
+function discardVoice(){
+  document.getElementById('voice-confirm').classList.remove('show');
+  document.getElementById('chat-input').value='';
+  pendingTranscript='';
+  autoResize(document.getElementById('chat-input'));
+}
+
+// ── Image ─────────────────────────────────────────────────
+function handleImageUpload(input){
+  const file=input.files?.[0];if(!file)return;
+  attachedImage={file,description:mockImageAnalysis(file.name)};
+  document.getElementById('attach-name').textContent=file.name;
+  document.getElementById('attach-preview').classList.add('show');
+  addBotMessage(T().imageAttached(escHtml(file.name),escHtml(attachedImage.description)));
+}
+function mockImageAnalysis(filename){
+  const l=filename.toLowerCase();
+  if(l.includes('water')||l.includes('pipe')||l.includes('flood'))return'Water leakage or flooding visible';
+  if(l.includes('road')||l.includes('pot'))return'Road damage or pothole visible';
+  if(l.includes('garbage')||l.includes('waste'))return'Uncollected garbage visible';
+  if(l.includes('light')||l.includes('electric'))return'Electrical or lighting issue visible';
+  return'Civic infrastructure issue detected';
+}
+function removeAttachment(){attachedImage=null;document.getElementById('image-input').value='';document.getElementById('attach-preview').classList.remove('show');}
+
+// ── Utils ─────────────────────────────────────────────────
+function quickSend(text){document.getElementById('chat-input').value=text;autoResize(document.getElementById('chat-input'));sendMessage();}
+function openInForm(){if(!pendingResult)return;const p=new URLSearchParams({title:pendingResult.title||'',desc:pendingResult.detailedDescription||'',cat:pendingResult.category||''});window.location.href='/submit.html?'+p.toString();}
+function scrollToBottom(){const el=document.getElementById('messages');setTimeout(()=>el.scrollTop=el.scrollHeight,50);}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
+function getPosition(){return new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));}
+function escHtml(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s||'').replace(/'/g,"\\'");}
+function urgencyIcon(u){return{CRITICAL:'🔴',HIGH:'🟠',MEDIUM:'🟡',LOW:'🟢'}[u]||'⚪';}
+function categoryIcon(c){return{WATER:'💧',ELECTRICITY:'⚡',ROAD:'🛣️',GARBAGE:'🗑️',DRAINAGE:'🌊',STREETLIGHT:'💡',PARK:'🌳',NOISE:'📢',ENCROACHMENT:'🚧',ANIMAL:'🐕',OTHER:'📋'}[c]||'📋';}
+</script>
+<script src="/js/animations.js"></script>
+</body>
+</html>

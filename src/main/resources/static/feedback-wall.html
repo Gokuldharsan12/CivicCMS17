@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+  <script>/* Prevent flash of wrong theme */
+    (function(){var t=localStorage.getItem('civicTheme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <title>Community Feedback — CivicCMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <style>
+    /* ── Hero ── */
+    .wall-hero {
+      background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 60%, #3730A3 100%);
+      padding: 52px 20px 52px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .wall-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 70% 50%, rgba(255,255,255,.08) 0%, transparent 60%),
+                  radial-gradient(circle at 20% 80%, rgba(255,255,255,.05) 0%, transparent 50%);
+    }
+    .wall-hero > * { position: relative; z-index: 1; }
+    .wall-hero h1 {
+      font-family: var(--font-head); font-size: 2.2rem; font-weight: 900;
+      color: #fff; margin: 0 0 10px; letter-spacing: -.5px;
+    }
+    .wall-hero p { color: rgba(255,255,255,.75); font-size: .95rem; margin: 0 0 32px; }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      max-width: 860px;
+      margin: 24px auto 36px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+      gap: 14px;
+    }
+    @media(max-width:700px){ .stats-bar { grid-template-columns: 1fr 1fr; } }
+    @media(max-width:400px){ .stats-bar { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      transition: background .3s, border-color .3s;
+    }
+    .stat-card-val {
+      font-family: var(--font-head); font-size: 1.9rem; font-weight: 900;
+      color: var(--indigo); line-height: 1; margin-bottom: 4px;
+    }
+    .stat-card-label {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--text-muted);
+    }
+    .stat-stars { font-size: 1rem; color: #f59e0b; letter-spacing: 1px; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      max-width: 860px; margin: 0 auto 24px; padding: 0 20px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .filter-label {
+      font-size: .78rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: .5px; flex-shrink: 0;
+    }
+    .filter-chip {
+      padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
+      border: 1.5px solid var(--border-2); background: var(--surface);
+      color: var(--text-muted); cursor: pointer; transition: all .15s;
+    }
+    .filter-chip:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-lt); }
+    .filter-chip.active { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+    .filter-count {
+      margin-left: auto; font-size: .8rem; color: var(--text-muted); font-weight: 600;
+    }
+
+    /* ── Wall grid ── */
+    .wall-grid {
+      max-width: 860px; margin: 0 auto 48px; padding: 0 20px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 18px; align-items: start;
+    }
+    @media(max-width:640px){ .wall-grid { grid-template-columns: 1fr; } }
+
+    /* ── Review card ── */
+    .review-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 22px 22px 18px;
+      box-shadow: var(--shadow-xs);
+      transition: box-shadow .22s, transform .22s, border-color .22s, background .3s;
+      display: flex; flex-direction: column; gap: 14px;
+      animation: fadeUp .35s ease both;
+    }
+    .review-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-3px);
+      border-color: var(--indigo-mid);
+    }
+
+    /* Top row: avatar + name + date */
+    .review-top {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .review-avatar {
+      width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--indigo), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; color: #fff; font-weight: 800;
+      font-family: var(--font-head);
+    }
+    .review-meta { flex: 1; min-width: 0; }
+    .review-name {
+      font-weight: 700; font-size: .88rem; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .review-date { font-size: .72rem; color: var(--text-dim); margin-top: 1px; }
+
+    /* Overall stars */
+    .review-stars { font-size: 1.1rem; color: #f59e0b; letter-spacing: 1px; }
+    .review-stars-empty { color: var(--border-2); }
+
+    /* Complaint badge */
+    .review-complaint {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--indigo-lt); border: 1px solid var(--indigo-mid);
+      border-radius: var(--radius); padding: 7px 11px;
+      font-size: .78rem;
+    }
+    .review-complaint-id {
+      font-family: var(--font-mono); font-weight: 700; color: var(--indigo);
+      flex-shrink: 0;
+    }
+    .review-complaint-title {
+      color: var(--text); font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .review-complaint-cat {
+      margin-left: auto; flex-shrink: 0;
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .4px; color: var(--text-muted);
+    }
+
+    /* Score bars */
+    .score-bars { display: flex; flex-direction: column; gap: 6px; }
+    .score-row { display: flex; align-items: center; gap: 8px; font-size: .75rem; }
+    .score-row-label { width: 90px; flex-shrink: 0; color: var(--text-muted); font-weight: 600; }
+    .score-bar-track {
+      flex: 1; height: 6px; background: var(--surface2);
+      border-radius: 3px; overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--indigo), var(--purple));
+      transition: width .6s cubic-bezier(.22,1,.36,1);
+    }
+    .score-bar-val { width: 20px; text-align: right; font-weight: 700; color: var(--indigo); }
+
+    /* Comment */
+    .review-comment {
+      font-size: .85rem; color: var(--text-muted); line-height: 1.65;
+      font-style: italic; padding: 10px 14px;
+      background: var(--surface2); border-radius: var(--radius);
+      border-left: 3px solid var(--indigo-mid);
+      position: relative;
+    }
+    .review-comment::before {
+      content: '"'; font-size: 2rem; color: var(--indigo-mid);
+      position: absolute; top: -4px; left: 8px; line-height: 1;
+    }
+    .review-comment-text { padding-left: 12px; display: block; }
+
+    /* No comment placeholder */
+    .no-comment {
+      font-size: .8rem; color: var(--text-dim); font-style: italic;
+    }
+
+    /* ── Empty state ── */
+    .wall-empty {
+      text-align: center; padding: 80px 20px;
+      max-width: 480px; margin: 0 auto;
+    }
+    .wall-empty-icon { font-size: 4rem; margin-bottom: 16px; }
+    .wall-empty-title {
+      font-family: var(--font-head); font-size: 1.3rem; font-weight: 800;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .wall-empty-msg { color: var(--text-muted); font-size: .9rem; margin-bottom: 24px; }
+
+    /* ── Skeleton loading ── */
+    .review-card-skeleton {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-xl); padding: 22px;
+      animation: fadeUp .3s ease both;
+    }
+    .skel { background: var(--surface2); border-radius: var(--radius); animation: shimmer 1.5s infinite; }
+    .skel-circle { width: 42px; height: 42px; border-radius: 50%; }
+    .skel-line { height: 12px; margin-bottom: 8px; }
+    .skel-line-sm { height: 10px; }
+
+    /* ── Pagination ── */
+    .wall-pagination {
+      display: flex; justify-content: center; gap: 8px;
+      margin-bottom: 48px; flex-wrap: wrap;
+    }
+
+    /* ── Dark mode adjustments ── */
+    [data-theme="dark"] .wall-hero {
+      background: linear-gradient(135deg, #150926 0%, #1c1040 60%, #0c0414 100%);
+    }
+    [data-theme="dark"] .stat-card { background: var(--surface); border-color: var(--border-2); }
+    [data-theme="dark"] .review-card { background: var(--surface); border-color: var(--border-2); }
+    [data-theme="dark"] .review-comment { background: var(--surface2); border-color: var(--indigo-mid); }
+    [data-theme="dark"] .score-bar-track { background: var(--surface3); }
+    [data-theme="dark"] .review-complaint { background: var(--indigo-lt); border-color: var(--indigo-mid); }
+    [data-theme="dark"] .filter-chip { background: var(--surface); border-color: var(--border-2); color: var(--text-muted); }
+    [data-theme="dark"] .filter-chip.active { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+    [data-theme="dark"] .review-card-skeleton { background: var(--surface); border-color: var(--border-2); }
+    [data-theme="dark"] .skel { background: var(--surface2); }
+
+    /* ── Reviews/Feedback Tabs ─────────────────────────── */
+    .reviews-tabs-wrap {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .reviews-tabs {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      gap: 0;
+      padding: 0 20px;
+    }
+    .reviews-tab {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 14px 22px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-family: var(--font-head, inherit);
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .18s;
+      margin-bottom: -1px;
+    }
+    .reviews-tab:hover { color: var(--indigo); }
+    .reviews-tab.active {
+      color: var(--indigo);
+      border-bottom-color: var(--indigo);
+    }
+
+    /* ── Embedded Feedback Form ────────────────────────── */
+    .fb-embed-wrap {
+      max-width: 640px;
+      margin: 36px auto 60px;
+      padding: 0 20px;
+    }
+    .fb-embed-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl, 16px);
+      padding: 32px 32px 28px;
+      box-shadow: var(--shadow-md, 0 4px 24px rgba(0,0,0,.08));
+    }
+    .fb-embed-header { margin-bottom: 22px; }
+    .fb-embed-header h2 { font-size: 1.35rem; font-weight: 800; margin: 0 0 6px; color: var(--text); }
+    .fb-embed-header p  { font-size: .875rem; color: var(--text-muted); margin: 0; }
+    .fb-embed-alert {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .fb-embed-alert.ok  { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .fb-embed-alert.err { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    [data-theme="dark"] .fb-embed-alert.ok  { background: rgba(16,185,129,.15); color: #6ee7b7; border-color: rgba(16,185,129,.3); }
+    [data-theme="dark"] .fb-embed-alert.err { background: rgba(239,68,68,.15); color: #fca5a5; border-color: rgba(239,68,68,.3); }
+
+    .fb-embed-field { margin-bottom: 20px; }
+    .fb-embed-field label { display: block; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: 8px; }
+    .fb-embed-field label span { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--text-muted); }
+    .fb-embed-select, .fb-embed-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border, #e5e7eb);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+      font-size: .875rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .fb-embed-select:focus, .fb-embed-textarea:focus {
+      outline: none;
+      border-color: var(--indigo, #4f46e5);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+    }
+    .fb-embed-textarea { resize: vertical; min-height: 90px; }
+    .fb-embed-divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+    .fb-embed-ratings { display: flex; flex-direction: column; gap: 10px; }
+    .fb-embed-rating-row {
+      display: grid;
+      grid-template-columns: 160px 1fr auto;
+      align-items: center;
+      gap: 12px;
+    }
+    .fb-embed-rating-row > span:first-child { font-size: .875rem; color: var(--text); }
+    .fb-embed-stars { display: flex; gap: 4px; }
+    .fb-embed-stars .estar {
+      font-size: 1.35rem;
+      cursor: pointer;
+      color: var(--border, #d1d5db);
+      transition: color .1s, transform .1s;
+      user-select: none;
+    }
+    .fb-embed-stars .estar:hover,
+    .fb-embed-stars .estar.lit { color: #f59e0b; transform: scale(1.15); }
+    .fb-embed-hint { font-size: .75rem; color: var(--indigo, #4f46e5); min-width: 60px; text-align: right; }
+
+    .fb-embed-submit {
+      width: 100%;
+      padding: 13px 24px;
+      background: var(--indigo, #4f46e5);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: .95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s, transform .12s;
+      margin-top: 8px;
+    }
+    .fb-embed-submit:hover { opacity: .88; transform: translateY(-1px); }
+    .fb-embed-submit:active { transform: scale(.98); }
+    .fb-embed-submit:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    @media(max-width:520px) {
+      .fb-embed-card { padding: 22px 18px; }
+      .fb-embed-rating-row { grid-template-columns: 1fr; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">C</div>
+    <span><span class="brand-accent">Civic</span>CMS</span>
+  </div>
+    <div class="navbar-links">
+    <a href="/index.html" id="nav-home">Home</a>
+    <a href="/chatbot.html" id="nav-chatbot">🤖 AI Chatbot</a>
+    <a href="/submit.html" id="nav-submit">Submit</a>
+    <a href="/track.html" id="nav-track">Track</a>
+    <a href="/history.html" id="nav-my">My Complaints</a>
+    <a href="/feedback.html" id="nav-feedback">⭐ Feedback &amp; Reviews</a>
+  </div>
+  <div id="civic-settings-wrap" style="display:flex;align-items:center;gap:8px;">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="CivicTheme.toggle()" title="Toggle theme">🌙</button>
+    <button id="civic-gear-btn" onclick="LangManager.toggleSettings(event)" title="Settings">⚙️</button>
+    <div id="civic-settings-panel">
+      <div class="settings-section-title">🎨 Theme</div>
+      <button class="theme-option" id="theme-opt-light" onclick="CivicTheme.set('light');LangManager.toggleSettings(event)"><span>☀️</span><span>Light</span><span class="lang-check" id="tchk-light"></span></button>
+      <button class="theme-option" id="theme-opt-dark" onclick="CivicTheme.set('dark');LangManager.toggleSettings(event)"><span>🌙</span><span>Dark</span><span class="lang-check" id="tchk-dark"></span></button>
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">🌐 Language</div>
+      <button class="lang-option" id="langopt-en" onclick="LangManager.switchTo('en')"><span>🇬🇧</span><span>English</span><span class="lang-check" id="lcheck-en"></span></button>
+      <button class="lang-option" id="langopt-ta" onclick="LangManager.switchTo('ta')"><span>🇮🇳</span><span>தமிழ்</span><span class="lang-check" id="lcheck-ta"></span></button>
+      <button class="lang-option" id="langopt-hi" onclick="LangManager.switchTo('hi')"><span>🇮🇳</span><span>हिंदी</span><span class="lang-check" id="lcheck-hi"></span></button>
+      <div class="settings-divider"></div>
+      <button class="logout-option" onclick="LangManager.doLogout()"><span>🚪</span><span id="settings-logout-text">Logout</span></button>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="wall-hero">
+  <div style="font-size:2.8rem;margin-bottom:14px;">💬</div>
+  <h1>Reviews &amp; Feedback</h1>
+  <p>See what citizens say about our civic services — and share your own experience</p>
+</div>
+
+<!-- Tab Navigation -->
+<div class="reviews-tabs-wrap">
+  <div class="reviews-tabs">
+    <button class="reviews-tab active" id="tab-reviews" onclick="switchTab('reviews')">
+      <span>💬</span> Community Reviews
+    </button>
+    <button class="reviews-tab" id="tab-feedback" onclick="switchTab('feedback')">
+      <span>⭐</span> Leave Feedback
+    </button>
+  </div>
+</div>
+
+<!-- Reviews Panel -->
+<div id="panel-reviews">
+
+<!-- Stats bar -->
+<div class="stats-bar" id="stats-bar">
+  <!-- Skeleton -->
+  <div class="stat-card"><div class="skel skel-line" style="width:60%;margin:0 auto 8px;"></div><div class="skel skel-line-sm" style="width:80%;margin:0 auto;"></div></div>
+  <div class="stat-card"><div class="skel skel-line" style="width:60%;margin:0 auto 8px;"></div><div class="skel skel-line-sm" style="width:80%;margin:0 auto;"></div></div>
+  <div class="stat-card"><div class="skel skel-line" style="width:60%;margin:0 auto 8px;"></div><div class="skel skel-line-sm" style="width:80%;margin:0 auto;"></div></div>
+  <div class="stat-card"><div class="skel skel-line" style="width:60%;margin:0 auto 8px;"></div><div class="skel skel-line-sm" style="width:80%;margin:0 auto;"></div></div>
+  <div class="stat-card"><div class="skel skel-line" style="width:60%;margin:0 auto 8px;"></div><div class="skel skel-line-sm" style="width:80%;margin:0 auto;"></div></div>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <span class="filter-label">Filter:</span>
+  <button class="filter-chip active" data-stars="0" onclick="setFilter(this,0)">All Reviews</button>
+  <button class="filter-chip" data-stars="5" onclick="setFilter(this,5)">⭐⭐⭐⭐⭐ 5 Stars</button>
+  <button class="filter-chip" data-stars="4" onclick="setFilter(this,4)">⭐⭐⭐⭐ 4 Stars</button>
+  <button class="filter-chip" data-stars="3" onclick="setFilter(this,3)">⭐⭐⭐ 3 Stars</button>
+  <button class="filter-chip" data-stars="2" onclick="setFilter(this,2)">⭐⭐ 1-2 Stars</button>
+  <span class="filter-count" id="filter-count"></span>
+</div>
+
+<!-- Review wall -->
+<div class="wall-grid" id="wall-grid">
+  <!-- Skeletons -->
+  <div class="review-card-skeleton">
+    <div style="display:flex;gap:12px;margin-bottom:14px;"><div class="skel skel-circle"></div><div style="flex:1;"><div class="skel skel-line" style="width:60%;"></div><div class="skel skel-line-sm" style="width:40%;"></div></div></div>
+    <div class="skel skel-line" style="width:80%;"></div>
+    <div class="skel skel-line" style="width:100%;height:50px;margin-top:4px;"></div>
+  </div>
+  <div class="review-card-skeleton">
+    <div style="display:flex;gap:12px;margin-bottom:14px;"><div class="skel skel-circle"></div><div style="flex:1;"><div class="skel skel-line" style="width:60%;"></div><div class="skel skel-line-sm" style="width:40%;"></div></div></div>
+    <div class="skel skel-line" style="width:80%;"></div>
+    <div class="skel skel-line" style="width:100%;height:50px;margin-top:4px;"></div>
+  </div>
+</div>
+
+<!-- Pagination -->
+<div class="wall-pagination" id="wall-pagination"></div>
+
+</div><!-- /panel-reviews -->
+
+<!-- Feedback Panel -->
+<div id="panel-feedback" style="display:none;">
+  <div class="fb-embed-wrap">
+    <div class="fb-embed-card">
+      <div class="fb-embed-header">
+        <h2>⭐ Share Your Feedback</h2>
+        <p>Rate your experience with CivicCMS. Your review will appear publicly on this page.</p>
+      </div>
+      <div id="fb-embed-alert" class="fb-embed-alert"></div>
+
+      <div class="fb-embed-field">
+        <label>Linked Complaint <span>(optional)</span></label>
+        <select id="fb-embed-complaint" class="fb-embed-select">
+          <option value="">General feedback — not linked to a complaint</option>
+        </select>
+      </div>
+
+      <div class="fb-embed-divider"></div>
+
+      <div class="fb-embed-field">
+        <label>Ratings <span>(required — click a star)</span></label>
+        <div class="fb-embed-ratings">
+          <div class="fb-embed-rating-row"><span>Overall Experience</span><div class="fb-embed-stars" id="es-overall" data-dim="overall"></div><span class="fb-embed-hint" id="eh-overall"></span></div>
+          <div class="fb-embed-rating-row"><span>Response Speed</span><div class="fb-embed-stars" id="es-speed" data-dim="speed"></div><span class="fb-embed-hint" id="eh-speed"></span></div>
+          <div class="fb-embed-rating-row"><span>Resolution Quality</span><div class="fb-embed-stars" id="es-quality" data-dim="quality"></div><span class="fb-embed-hint" id="eh-quality"></span></div>
+          <div class="fb-embed-rating-row"><span>Communication</span><div class="fb-embed-stars" id="es-comm" data-dim="communication"></div><span class="fb-embed-hint" id="eh-comm"></span></div>
+        </div>
+      </div>
+
+      <div class="fb-embed-divider"></div>
+
+      <div class="fb-embed-field">
+        <label>Comment <span>(optional)</span></label>
+        <textarea id="fb-embed-comment" class="fb-embed-textarea" rows="4" placeholder="Share your experience in detail…"></textarea>
+      </div>
+
+      <button class="fb-embed-submit" id="fb-embed-submit" onclick="submitEmbedFeedback()">
+        Submit Feedback ⭐
+      </button>
+    </div>
+  </div>
+</div>
+
+<footer>&copy; 2026 <span class="f-accent">CivicCMS</span> · Building a better city together</footer>
+
+<script src="/js/cms.js"></script>
+<script src="/js/lang.js"></script>
+<script src="/js/api.js"></script>
+<script>
+  let allReviews = [];
+  let filteredReviews = [];
+  let currentFilter = 0;  // 0 = all
+  let currentPage = 0;
+  const PAGE_SIZE = 12;
+
+  const CATEGORY_ICONS = {
+    WATER:'💧', ELECTRICITY:'⚡', ROAD:'🛣️', GARBAGE:'🗑️',
+    DRAINAGE:'🌊', STREETLIGHT:'💡', PARK:'🌳', NOISE:'📢',
+    ENCROACHMENT:'🚧', ANIMAL:'🐕', OTHER:'📋',
+    Road:'🛣️', Sanitation:'🗑️', Electricity:'⚡',
+    Water:'💧', 'Public Safety':'🚔', General:'📌'
+  };
+
+  // ── Init ──────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    try { LangManager.applyNav(); CivicTheme.apply(CivicTheme.get()); } catch(e) {}
+    loadStats();
+    loadReviews();
+  });
+
+  // ── Load aggregate stats ──────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const s = await API.get('/api/v1/ratings/stats');
+      document.getElementById('stats-bar').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-card-val">${s.totalRatings}</div>
+          <div class="stat-card-label">Total Reviews</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-val">${s.avgOverall}</div>
+          <div class="stat-stars">${starsHtml(s.avgOverall)}</div>
+          <div class="stat-card-label">Overall Rating</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-val">${s.avgSpeed}</div>
+          <div class="stat-card-label">⚡ Avg Speed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-val">${s.avgQuality}</div>
+          <div class="stat-card-label">🎯 Avg Quality</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-val">${s.avgComm}</div>
+          <div class="stat-card-label">💬 Avg Comm.</div>
+        </div>`;
+    } catch(e) {
+      document.getElementById('stats-bar').innerHTML =
+        '<div class="stat-card" style="grid-column:1/-1;text-align:center;color:var(--text-muted);">Stats unavailable</div>';
+    }
+  }
+
+  // ── Load all reviews ──────────────────────────────────────────────
+  async function loadReviews() {
+    try {
+      // Load all at once for client-side filtering
+      const data = await API.get('/api/v1/ratings?page=0&size=200');
+      allReviews = data.content || [];
+      applyFilter(currentFilter);
+    } catch(e) {
+      document.getElementById('wall-grid').innerHTML =
+        `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-muted);">
+          <div style="font-size:2rem;margin-bottom:12px;">😕</div>
+          <div>Could not load reviews. Please try again later.</div>
+        </div>`;
+    }
+  }
+
+  // ── Filter ────────────────────────────────────────────────────────
+  function setFilter(btn, stars) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = stars;
+    currentPage = 0;
+    applyFilter(stars);
+  }
+
+  function applyFilter(stars) {
+    if (stars === 0) {
+      filteredReviews = [...allReviews];
+    } else if (stars === 2) {
+      // 1-2 stars
+      filteredReviews = allReviews.filter(r => Math.round(r.avgScore) <= 2);
+    } else {
+      filteredReviews = allReviews.filter(r => Math.round(r.avgScore) === stars);
+    }
+    document.getElementById('filter-count').textContent =
+      filteredReviews.length + ' review' + (filteredReviews.length !== 1 ? 's' : '');
+    renderPage(0);
+  }
+
+  // ── Tab switching ─────────────────────────────────────────────────
+  function switchTab(tab) {
+    const isReviews = tab === 'reviews';
+    document.getElementById('tab-reviews').classList.toggle('active', isReviews);
+    document.getElementById('tab-feedback').classList.toggle('active', !isReviews);
+    document.getElementById('panel-reviews').style.display = isReviews ? '' : 'none';
+    document.getElementById('panel-feedback').style.display = isReviews ? 'none' : '';
+    if (!isReviews) initEmbedFeedback();
+  }
+
+  // Switch to feedback tab if URL hash is #feedback
+  if (location.hash === '#feedback') switchTab('feedback');
+
+  // ── Embedded Feedback Form ────────────────────────────────────────
+  let embedInited = false;
+  const EMBED_DIMS = ['overall','speed','quality','communication'];
+  const EMBED_LABELS = ['overall','speed','quality','comm'];
+  const EMBED_HINTS = ['Poor','Fair','Good','Very Good','Excellent'];
+  const embedRatings = { overall:0, speed:0, quality:0, communication:0 };
+
+  function initEmbedFeedback() {
+    if (embedInited) return;
+    embedInited = true;
+
+    // Build stars for each dim
+    EMBED_DIMS.forEach((dim, di) => {
+      const containerId = 'es-' + EMBED_LABELS[di];
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement('span');
+        star.className = 'estar';
+        star.textContent = '★';
+        star.dataset.val = i;
+        star.addEventListener('click', () => setEmbedRating(dim, EMBED_LABELS[di], i));
+        star.addEventListener('mouseover', () => hoverEmbedStars(containerId, i));
+        star.addEventListener('mouseout', () => renderEmbedStars(containerId, embedRatings[dim]));
+        container.appendChild(star);
+      }
+    });
+
+    // Load user complaints
+    loadEmbedComplaints();
+  }
+
+  function setEmbedRating(dim, labelId, val) {
+    embedRatings[dim] = val;
+    renderEmbedStars('es-' + labelId, val);
+    const hintEl = document.getElementById('eh-' + labelId);
+    if (hintEl) hintEl.textContent = EMBED_HINTS[val - 1] || '';
+  }
+
+  function hoverEmbedStars(containerId, val) {
+    const stars = document.querySelectorAll('#' + containerId + ' .estar');
+    stars.forEach((s, i) => s.classList.toggle('lit', i < val));
+  }
+
+  function renderEmbedStars(containerId, val) {
+    const stars = document.querySelectorAll('#' + containerId + ' .estar');
+    stars.forEach((s, i) => s.classList.toggle('lit', i < val));
+  }
+
+  async function loadEmbedComplaints() {
+    try {
+      const token = localStorage.getItem('civicToken');
+      if (!token) return;
+      const res = await fetch('/api/v1/complaints/my', { headers: { Authorization: 'Bearer ' + token }});
+      if (!res.ok) return;
+      const data = await res.json();
+      const resolved = (data.content || data).filter(c => c.status === 'RESOLVED');
+      const sel = document.getElementById('fb-embed-complaint');
+      resolved.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = 'CMP-' + c.id + ' — ' + (c.title || '').slice(0, 45);
+        sel.appendChild(opt);
+      });
+    } catch(e) {}
+  }
+
+  async function submitEmbedFeedback() {
+    const btn = document.getElementById('fb-embed-submit');
+    const alertEl = document.getElementById('fb-embed-alert');
+
+    // Validate
+    if (!embedRatings.overall || !embedRatings.speed || !embedRatings.quality || !embedRatings.communication) {
+      showEmbedAlert('Please rate all four categories.', false);
+      return;
+    }
+
+    const token = localStorage.getItem('civicToken');
+    if (!token) {
+      showEmbedAlert('Please log in first to submit feedback.', false);
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    const payload = {
+      complaintId: parseInt(document.getElementById('fb-embed-complaint').value) || null,
+      overallScore: embedRatings.overall,
+      speedScore: embedRatings.speed,
+      qualityScore: embedRatings.quality,
+      communicationScore: embedRatings.communication,
+      comments: document.getElementById('fb-embed-comment').value.trim()
+    };
+
+    try {
+      const res = await fetch('/api/v1/ratings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Submission failed');
+      }
+      showEmbedAlert('✅ Feedback submitted! Thank you.', true);
+      btn.textContent = '✅ Submitted!';
+      // Switch back to reviews tab after 1.5s
+      setTimeout(() => { switchTab('reviews'); loadReviews(); }, 1500);
+    } catch(e) {
+      showEmbedAlert('❌ ' + (e.message || 'Submission failed. Please try again.'), false);
+      btn.disabled = false;
+      btn.textContent = 'Submit Feedback ⭐';
+    }
+  }
+
+  function showEmbedAlert(msg, ok) {
+    const el = document.getElementById('fb-embed-alert');
+    el.textContent = msg;
+    el.className = 'fb-embed-alert ' + (ok ? 'ok' : 'err');
+    el.style.display = 'block';
+    if (ok) setTimeout(() => el.style.display='none', 4000);
+  }
+
+  // ── Render page ───────────────────────────────────────────────────
+  function renderPage(page) {
+    currentPage = page;
+    const from = page * PAGE_SIZE;
+    const to   = Math.min(from + PAGE_SIZE, filteredReviews.length);
+    const slice = filteredReviews.slice(from, to);
+
+    if (filteredReviews.length === 0) {
+      document.getElementById('wall-grid').innerHTML = `
+        <div class="wall-empty" style="grid-column:1/-1;">
+          <div class="wall-empty-icon">💬</div>
+          <div class="wall-empty-title">No reviews yet</div>
+          <div class="wall-empty-msg">
+            ${currentFilter === 0
+              ? 'Be the first to leave feedback! Rate a resolved complaint.'
+              : 'No reviews matching this filter.'}
+          </div>
+          <a href="/rate.html" class="btn btn-primary">⭐ Leave First Review</a>
+        </div>`;
+      document.getElementById('wall-pagination').innerHTML = '';
+      return;
+    }
+
+    document.getElementById('wall-grid').innerHTML = slice
+      .map((r, i) => reviewCardHtml(r, i))
+      .join('');
+
+    renderPagination();
+  }
+
+  // ── Review card HTML ──────────────────────────────────────────────
+  function reviewCardHtml(r, idx) {
+    const name     = r.submittedByName || 'Anonymous';
+    const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
+    const catIcon  = CATEGORY_ICONS[r.complaintCategory] || '📋';
+    const avg      = parseFloat(r.avgScore) || 0;
+    const hasComment = r.comments && r.comments.trim().length > 0;
+
+    return `
+      <div class="review-card reveal" style="animation-delay:${idx * 0.05}s;">
+
+        <!-- Top: avatar + name + date + overall stars -->
+        <div class="review-top">
+          <div class="review-avatar">${initials}</div>
+          <div class="review-meta">
+            <div class="review-name">${escHtml(name)}</div>
+            <div class="review-date">${fmtDate(r.submittedAt)}</div>
+          </div>
+          <div style="flex-shrink:0;">
+            <div class="review-stars">${starsHtml(avg)}</div>
+            <div style="font-size:.7rem;color:var(--text-muted);text-align:right;margin-top:2px;">${avg}/5</div>
+          </div>
+        </div>
+
+        <!-- Linked complaint -->
+        ${r.complaintId && r.complaintId !== 0 ? `
+        <div class="review-complaint">
+          <span class="review-complaint-id">CMP-${r.complaintId}</span>
+          <span class="review-complaint-title">${escHtml(r.complaintTitle || '')}</span>
+          <span class="review-complaint-cat">${catIcon} ${r.complaintCategory || ''}</span>
+        </div>` : `
+        <div class="review-complaint" style="background:var(--surface2);border-color:var(--border-2);">
+          <span style="font-size:.85rem;">💬</span>
+          <span class="review-complaint-title" style="color:var(--text-muted);font-style:italic;">General Feedback</span>
+        </div>`}
+
+        <!-- Score breakdown bars -->
+        <div class="score-bars">
+          ${scorebar('Speed',         r.speedScore)}
+          ${scorebar('Quality',       r.qualityScore)}
+          ${scorebar('Communication', r.communicationScore)}
+        </div>
+
+        <!-- Comment -->
+        ${hasComment
+          ? `<div class="review-comment">
+               <span class="review-comment-text">${escHtml(r.comments)}</span>
+             </div>`
+          : `<div class="no-comment">No written comment left.</div>`
+        }
+
+      </div>`;
+  }
+
+  function scorebar(label, val) {
+    const v = Math.min(5, Math.max(0, parseInt(val) || 0));
+    const pct = (v / 5) * 100;
+    return `<div class="score-row">
+      <span class="score-row-label">${label}</span>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:${pct}%"></div></div>
+      <span class="score-bar-val">${v}</span>
+    </div>`;
+  }
+
+  // ── Pagination ────────────────────────────────────────────────────
+  function renderPagination() {
+    const totalPages = Math.ceil(filteredReviews.length / PAGE_SIZE);
+    if (totalPages <= 1) { document.getElementById('wall-pagination').innerHTML = ''; return; }
+    let html = '';
+    for (let i = 0; i < totalPages; i++) {
+      html += `<button class="btn btn-sm ${i===currentPage?'btn-primary':'btn-outline'}"
+               onclick="renderPage(${i})">${i+1}</button>`;
+    }
+    document.getElementById('wall-pagination').innerHTML = html;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────
+  function starsHtml(score) {
+    const full  = Math.round(parseFloat(score) || 0);
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+      html += `<span style="color:${i <= full ? '#f59e0b' : 'var(--border-2)'}">★</span>`;
+    }
+    return html;
+  }
+
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtDate(dt) {
+    if (!dt) return '';
+    try {
+      return new Date(dt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+    } catch(e) { return ''; }
+  }
+</script>
+<script src="/js/animations.js"></script>
+</body>
+</html>

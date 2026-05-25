@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>/* Prevent flash of wrong theme */
+    (function(){var t=localStorage.getItem('civicTheme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Test Console — CivicCMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: var(--font); background: var(--bg); color: var(--text); }
+    .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .test-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 20px; box-shadow: var(--shadow-sm); }
+    .test-card h3 { font-family: var(--font-head); font-size: .95rem; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .test-card p  { font-size: .78rem; color: var(--text-muted); margin-bottom: 14px; }
+    .endpoint-tag { background: var(--indigo-lt); color: var(--indigo); border: 1px solid var(--indigo-mid); padding: 3px 9px; border-radius: 6px; font-family: var(--font-mono); font-size: .72rem; font-weight: 700; }
+    .method-post { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+    .method-get  { background: var(--green-lt); color: var(--green); border-color: var(--green-mid); }
+    .test-input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border-2); border-radius: var(--radius); font-family: var(--font); font-size: .85rem; color: var(--text); background: var(--surface2); outline: none; box-sizing: border-box; margin-bottom: 10px; }
+    .test-input:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-lt); }
+    .test-btn { padding: 9px 20px; border: none; border-radius: var(--radius); font-family: var(--font); font-size: .85rem; font-weight: 700; cursor: pointer; background: var(--indigo); color: #fff; transition: opacity .2s; }
+    .test-btn:hover { opacity: .85; }
+    .test-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .result-box { margin-top: 12px; background: #1e1b4b; color: #c7d2fe; border-radius: var(--radius); padding: 12px; font-family: var(--font-mono); font-size: .75rem; line-height: 1.6; max-height: 220px; overflow-y: auto; display: none; white-space: pre-wrap; word-break: break-all; }
+    .result-box.show { display: block; }
+    .result-box.error { background: #450a0a; color: #fca5a5; }
+    .status-dot-g { display: inline-block; width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px; }
+    .status-dot-r { display: inline-block; width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:4px; }
+    .page-hero { text-align:center;padding:32px 20px 12px;max-width:700px;margin:0 auto; }
+    .page-hero h1 { font-family:var(--font-head);font-size:1.6rem;font-weight:900;margin-bottom:8px; }
+    .page-hero p  { color:var(--text-muted);font-size:.88rem; }
+    textarea.test-input { resize:vertical;min-height:70px; }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand"><div class="brand-icon">C</div><span><span class="brand-accent">Civic</span>CMS</span></div>
+  <div class="navbar-links">
+    <a href="/index.html">Home</a>
+    <a href="/chatbot.html">🤖 AI Chatbot</a>
+    <a href="/api-test.html" class="active">🧪 API Test</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <h1>🧪 API Test Console</h1>
+  <p>Test all CivicCMS REST endpoints live. Login first to get a token for protected routes.</p>
+</div>
+
+<div class="test-grid">
+
+  <!-- ── 1. Login ────────────────────────────────────────────── -->
+  <div class="test-card">
+    <h3>🔑 User Login <span class="endpoint-tag method-post">POST /api/v1/auth/login</span></h3>
+    <p>Get a JWT token. Use credentials from the database.</p>
+    <input class="test-input" id="login-email" type="email" value="citizen@civiccms.in" placeholder="email">
+    <input class="test-input" id="login-pass"  type="password" value="Test@123" placeholder="password">
+    <button class="test-btn" onclick="testLogin()">▶ Run</button>
+    <div class="result-box" id="r-login"></div>
+  </div>
+
+  <!-- ── 2. Social Login ─────────────────────────────────────── -->
+  <div class="test-card">
+    <h3>🔵 Social Login <span class="endpoint-tag method-post">POST /api/v1/auth/social-login</span></h3>
+    <p>Google or Phone login — finds or creates user automatically.</p>
+    <input class="test-input" id="sl-email" value="demo@gmail.com" placeholder="email">
+    <input class="test-input" id="sl-name"  value="Demo Google User" placeholder="name">
+    <button class="test-btn" onclick="testSocialLogin()">▶ Run</button>
+    <div class="result-box" id="r-social"></div>
+  </div>
+
+  <!-- ── 3. AI Analyze ───────────────────────────────────────── -->
+  <div class="test-card">
+    <h3>🤖 AI Analyze <span class="endpoint-tag method-post">POST /api/ai/analyze</span></h3>
+    <p>Core AI engine — detects category, urgency, duplicates.</p>
+    <textarea class="test-input" id="ai-text" placeholder="Describe the civic issue…">Water pipe burst near the school and flooding the road</textarea>
+    <button class="test-btn" onclick="testAnalyze()">▶ Run</button>
+    <div class="result-box" id="r-analyze"></div>
+  </div>
+
+  <!-- ── 4. Heatmap ─────────────────────────────────────────── -->
+  <div class="test-card">
+    <h3>🗺️ Heatmap Data <span class="endpoint-tag method-get">GET /api/heatmap</span></h3>
+    <p>Returns complaint count grouped by lat/lng for the heatmap.</p>
+    <button class="test-btn" onclick="testHeatmap()">▶ Run</button>
+    <div class="result-box" id="r-heatmap"></div>
+  </div>
+
+  <!-- ── 5. Stats ────────────────────────────────────────────── -->
+  <div class="test-card">
+    <h3>📊 Complaint Stats <span class="endpoint-tag method-get">GET /api/complaints/stats</span></h3>
+    <p>Dashboard statistics: totals, by category, urgency breakdown.</p>
+    <button class="test-btn" onclick="testStats()">▶ Run</button>
+    <div class="result-box" id="r-stats"></div>
+  </div>
+
+  <!-- ── 6. List Complaints ──────────────────────────────────── -->
+  <div class="test-card">
+    <h3>📋 My Complaints <span class="endpoint-tag method-get">GET /api/v1/complaints/mine</span></h3>
+    <p>Lists complaints for the currently logged-in user. Requires token.</p>
+    <button class="test-btn" onclick="testMyComplaints()">▶ Run</button>
+    <div class="result-box" id="r-my"></div>
+  </div>
+
+  <!-- ── 7. Track ────────────────────────────────────────────── -->
+  <div class="test-card">
+    <h3>🔍 Track Complaint <span class="endpoint-tag method-get">GET /api/v1/complaints/track/{id}</span></h3>
+    <p>Public endpoint — track any complaint by ID.</p>
+    <input class="test-input" id="track-id" type="number" value="1" placeholder="Complaint ID">
+    <button class="test-btn" onclick="testTrack()">▶ Run</button>
+    <div class="result-box" id="r-track"></div>
+  </div>
+
+  <!-- ── 8. Departments ─────────────────────────────────────── -->
+  <div class="test-card">
+    <h3>🏢 Departments <span class="endpoint-tag method-get">GET /api/v1/departments</span></h3>
+    <p>Returns all registered departments for the routing system.</p>
+    <button class="test-btn" onclick="testDepts()">▶ Run</button>
+    <div class="result-box" id="r-depts"></div>
+  </div>
+
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  let storedToken = localStorage.getItem('token') || '';
+
+  async function run(id, method, url, body, useToken = false) {
+    const box = document.getElementById('r-' + id);
+    box.className = 'result-box show';
+    box.textContent = '⏳ Calling ' + method + ' ' + url + ' …';
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (useToken && storedToken) headers['Authorization'] = 'Bearer ' + storedToken;
+      const opts = { method, headers };
+      if (body) opts.body = JSON.stringify(body);
+      const res  = await fetch(url, opts);
+      const data = await res.json().catch(() => ({}));
+      box.className = res.ok ? 'result-box show' : 'result-box show error';
+      box.textContent = (res.ok ? '✅ ' : '❌ ') + res.status + ' ' + res.statusText + '\n\n' +
+        JSON.stringify(data, null, 2);
+      if (data.token) { storedToken = data.token; localStorage.setItem('token', data.token); }
+    } catch(e) {
+      box.className = 'result-box show error';
+      box.textContent = '❌ Network error: ' + e.message;
+    }
+  }
+
+  function testLogin() {
+    run('login', 'POST', '/api/v1/auth/login', {
+      email:    document.getElementById('login-email').value,
+      password: document.getElementById('login-pass').value
+    });
+  }
+
+  function testSocialLogin() {
+    run('social', 'POST', '/api/v1/auth/social-login', {
+      name:  document.getElementById('sl-name').value,
+      email: document.getElementById('sl-email').value,
+      provider: 'GOOGLE', providerId: 'test_' + Date.now()
+    });
+  }
+
+  function testAnalyze() {
+    run('analyze', 'POST', '/api/ai/analyze', {
+      text: document.getElementById('ai-text').value,
+      lat: 13.0827, lng: 80.2707
+    }, true);
+  }
+
+  function testHeatmap()      { run('heatmap', 'GET', '/api/heatmap'); }
+  function testStats()        { run('stats',   'GET', '/api/complaints/stats'); }
+  function testMyComplaints() { run('my',      'GET', '/api/v1/complaints/mine', null, true); }
+  function testDepts()        { run('depts',   'GET', '/api/v1/departments'); }
+  function testTrack() {
+    const id = document.getElementById('track-id').value || 1;
+    run('track', 'GET', `/api/v1/complaints/track/${id}`);
+  }
+</script>
+</body>
+</html>

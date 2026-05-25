@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    (function(){
+      var t = localStorage.getItem('civicTheme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heatmap — CivicCMS Admin</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Google Maps Design Tokens ─────────────────────── */
+    :root {
+      --bg:           #1a1c1e;
+      --surface:      #2d2f31;
+      --surface2:     #3c3f41;
+      --surface3:     #484b4d;
+      --border:       rgba(255,255,255,0.08);
+      --border2:      rgba(255,255,255,0.14);
+      --text:         #e8eaed;
+      --text2:        #9aa0a6;
+      --muted:        #5f6368;
+      --accent:       #8ab4f8;
+      --accent2:      #aecbfa;
+      --green:        #81c995;
+      --amber:        #fdd663;
+      --orange:       #fcad70;
+      --red:          #f28b82;
+      --blue-chip:    #1a73e8;
+      --nav-h:        56px;
+      --panel-w:      320px;
+      --font-sans:    'Roboto', 'Google Sans', sans-serif;
+      --font-title:   'Google Sans', 'Roboto', sans-serif;
+      --radius:       8px;
+      --radius-lg:    12px;
+      --shadow-card:  0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
+      --shadow-float: 0 2px 6px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAVBAR (Google Maps style) ───────────────────── */
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      z-index: 900;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .nav-brand-icon {
+      width: 36px; height: 36px;
+      background: var(--blue-chip);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .85rem; color: #fff;
+      font-family: var(--font-title);
+    }
+    .nav-brand-text {
+      font-family: var(--font-title);
+      font-weight: 500;
+      font-size: 1rem;
+      color: var(--text);
+    }
+    .nav-brand-text span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex: 1;
+    }
+    .nav-links a {
+      text-decoration: none;
+      font-size: .875rem;
+      font-weight: 500;
+      color: var(--text2);
+      padding: 8px 14px;
+      border-radius: 20px;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .nav-links a.active {
+      color: var(--accent);
+      background: rgba(138,180,248,0.12);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* ── BUTTONS ──────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      font-family: var(--font-sans);
+      font-size: .875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--blue-chip); color: #fff; border-color: var(--blue-chip); }
+    .btn-primary:hover { background: #1967d2; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text2);
+      border-color: var(--border2);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .btn-danger { background: #c5221f; color: #fff; border-color: #c5221f; }
+    .btn-danger:hover { background: #a50e0e; }
+
+    /* ── LAYOUT ──────────────────────────────────────── */
+    .app-wrap {
+      display: flex;
+      height: 100vh;
+      padding-top: var(--nav-h);
+    }
+
+    /* ── SIDE PANEL (Google Maps style card) ─────────── */
+    .side-panel {
+      width: var(--panel-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .panel-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .panel-title {
+      font-family: var(--font-title);
+      font-size: .8rem;
+      font-weight: 500;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 10px;
+    }
+
+    /* View toggle — Google Maps style chips */
+    .view-toggle {
+      display: flex;
+      gap: 8px;
+    }
+    .view-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--text2);
+      font-family: var(--font-sans);
+      font-size: .82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .view-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .view-btn.active {
+      background: rgba(138,180,248,0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── STAT CARDS (Google Maps info panels) ─────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-card {
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-left: 3px solid transparent;
+      transition: transform .15s;
+    }
+    .stat-card:hover { transform: translateY(-1px); }
+    .stat-card.critical { border-left-color: var(--red); }
+    .stat-card.high     { border-left-color: var(--orange); }
+    .stat-card.medium   { border-left-color: var(--amber); }
+    .stat-card.low      { border-left-color: var(--green); }
+    .stat-val {
+      font-family: var(--font-title);
+      font-size: 1.6rem;
+      font-weight: 500;
+      line-height: 1;
+      color: var(--text);
+    }
+    .stat-card.critical .stat-val { color: var(--red); }
+    .stat-card.high     .stat-val { color: var(--orange); }
+    .stat-card.medium   .stat-val { color: var(--amber); }
+    .stat-card.low      .stat-val { color: var(--green); }
+    .stat-label {
+      font-size: .72rem;
+      color: var(--text2);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    /* ── ZONE SECTION ──────────────────────────────────── */
+    .panel-section {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-title {
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .zone-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .zone-row-label { font-size: .84rem; color: var(--text); }
+
+    /* Google-style toggle */
+    .gm-toggle {
+      position: relative;
+      width: 38px; height: 22px;
+    }
+    .gm-toggle input { opacity: 0; width: 0; height: 0; }
+    .gm-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 99px;
+      background: var(--surface3);
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .gm-track::after {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--text2);
+      transition: transform .2s, background .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .gm-toggle input:checked + .gm-track { background: #1a73e8; }
+    .gm-toggle input:checked + .gm-track::after {
+      transform: translateX(16px);
+      background: #fff;
+    }
+
+    .zone-list { display: flex; flex-direction: column; gap: 5px; }
+    .zone-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .8rem;
+      color: var(--text2);
+    }
+    .zone-dot {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── INTENSITY LEGEND ──────────────────────────────── */
+    .legend-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #10b981, #f59e0b, #f97316, #ef4444);
+      margin: 6px 0;
+    }
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: .72rem;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+    .legend-items { display: flex; flex-direction: column; gap: 6px; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .legend-left { display: flex; align-items: center; gap: 8px; }
+    .legend-swatch {
+      width: 20px; height: 8px;
+      border-radius: 2px;
+    }
+    .legend-name { font-size: .82rem; color: var(--text); }
+    .legend-count {
+      font-size: .78rem;
+      color: var(--text2);
+      font-family: monospace;
+      background: var(--surface2);
+      padding: 1px 6px;
+      border-radius: 99px;
+    }
+
+    /* ── CATEGORY BARS ──────────────────────────────────── */
+    .cat-bar-row { margin-bottom: 8px; }
+    .cat-bar-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .cat-name { font-size: .8rem; color: var(--text); }
+    .cat-count { font-size: .78rem; color: var(--text2); }
+    .cat-track {
+      height: 4px;
+      background: var(--surface3);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .cat-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue-chip), var(--accent));
+      border-radius: 99px;
+      transition: width .4s ease;
+    }
+
+    /* ── PANEL FOOTER ──────────────────────────────────── */
+    .panel-footer {
+      padding: 12px 16px;
+      margin-top: auto;
+    }
+
+    /* ── MAP AREA ──────────────────────────────────────── */
+    .map-area {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    #map-canvas {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+    }
+
+    /* ── GOOGLE MAPS STYLE MAP CONTROLS ─────────────────── */
+
+    /* Search bar style badge (top-right) */
+    .map-topbar {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .map-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 14px;
+      font-size: .82rem;
+      color: var(--text2);
+      box-shadow: var(--shadow-card);
+      cursor: default;
+    }
+    .map-chip.clickable {
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .map-chip.clickable:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+    .map-chip.active {
+      background: rgba(138,180,248,0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .pulse-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-anim 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse-anim {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .4; transform: scale(.65); }
+    }
+
+    /* Bottom-left layer control panel — Google Maps layers panel style */
+    .layer-panel {
+      position: absolute;
+      bottom: 32px;
+      left: 12px;
+      z-index: 500;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-float);
+      overflow: hidden;
+      min-width: 160px;
+    }
+    .layer-panel-title {
+      padding: 8px 14px 6px;
+      font-size: .72rem;
+      font-weight: 500;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      border-bottom: 1px solid var(--border);
+    }
+    .layer-btn {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      padding: 9px 14px;
+      background: transparent;
+      border: none;
+      color: var(--text2);
+      font-size: .83rem;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .layer-btn:last-child { border-bottom: none; }
+    .layer-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .layer-btn.active { color: var(--accent); background: rgba(138,180,248,0.08); }
+    .layer-icon { font-size: 1rem; flex-shrink: 0; }
+
+    /* Google Maps attribution style */
+    .leaflet-control-attribution {
+      background: rgba(30,30,30,0.85) !important;
+      color: var(--text2) !important;
+      font-size: .7rem !important;
+      padding: 2px 8px !important;
+      border-radius: 4px 0 0 0 !important;
+    }
+    .leaflet-control-attribution a { color: var(--accent2) !important; }
+
+    /* Google Maps zoom controls style */
+    .leaflet-control-zoom {
+      border: none !important;
+      border-radius: var(--radius) !important;
+      overflow: hidden;
+      box-shadow: var(--shadow-card) !important;
+    }
+    .leaflet-control-zoom a {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--border) !important;
+      font-size: 16px !important;
+      width: 32px !important;
+      height: 32px !important;
+      line-height: 30px !important;
+    }
+    .leaflet-control-zoom a:hover { background: var(--surface2) !important; }
+
+    /* ── TOOLTIP ───────────────────────────────────────── */
+    .leaflet-tooltip-gm {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-float);
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: .82rem;
+      min-width: 160px;
+      pointer-events: none;
+    }
+    .leaflet-tooltip-gm::before { display: none !important; }
+    .tt-header {
+      font-weight: 500;
+      font-size: .88rem;
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .tt-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tt-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      gap: 12px;
+    }
+    .tt-label { color: var(--text2); font-size: .78rem; }
+    .tt-val { font-weight: 500; font-size: .82rem; }
+
+    /* ── LOADING OVERLAY ──────────────────────────────── */
+    .map-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(26,28,30,0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 400;
+      transition: opacity .3s;
+    }
+    .map-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner-ring {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(138,180,248,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .overlay-text { font-size: .85rem; color: var(--text2); }
+
+    /* ── ERROR TOAST (Google Material style) ─────────── */
+    .map-error {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #323232;
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 10px 20px;
+      font-size: .85rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 600;
+      opacity: 0;
+      transition: all .3s cubic-bezier(.2,.8,.2,1);
+      box-shadow: var(--shadow-float);
+      white-space: nowrap;
+      max-width: 90vw;
+    }
+    .map-error.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── SCROLLBAR ─────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 99px; }
+
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 768px) {
+      :root { --panel-w: 100%; }
+      .app-wrap { flex-direction: column; }
+      .side-panel {
+        width: 100%;
+        height: auto;
+        max-height: 42vh;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .map-area { flex: 1; }
+      .nav-links a:not(.active) { display: none; }
+    }
+
+    /* Stat card stagger */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .stat-card { animation: slideUp .35s ease both; }
+    .stat-card:nth-child(1) { animation-delay: .04s; }
+    .stat-card:nth-child(2) { animation-delay: .08s; }
+    .stat-card:nth-child(3) { animation-delay: .12s; }
+    .stat-card:nth-child(4) { animation-delay: .16s; }
+
+    /* ── Smooth zoom transitions ───────────────────────── */
+    .leaflet-tile-pane {
+      transition: opacity 0.2s ease;
+    }
+    .leaflet-zoom-anim .leaflet-tile-pane {
+      transition: transform 0.25s cubic-bezier(0,.6,0,1);
+    }
+    .leaflet-heatmap-layer {
+      transition: opacity 0.3s ease;
+    }
+
+    /* ── Improved zoom controls ────────────────────────── */
+    .leaflet-control-zoom {
+      border: none !important;
+      border-radius: var(--radius-lg) !important;
+      overflow: hidden;
+      box-shadow: var(--shadow-float) !important;
+    }
+    .leaflet-control-zoom a {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--border2) !important;
+      font-size: 18px !important;
+      font-weight: 400 !important;
+      width: 36px !important;
+      height: 36px !important;
+      line-height: 34px !important;
+      transition: background .15s, color .15s !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background: var(--surface2) !important;
+      color: var(--accent) !important;
+    }
+    .leaflet-control-zoom-in { border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important; }
+    .leaflet-control-zoom-out { border-radius: 0 0 var(--radius-lg) var(--radius-lg) !important; }
+
+    /* ── Improved Tooltip ──────────────────────────────── */
+    .leaflet-tooltip-gm {
+      animation: tooltipIn 0.15s cubic-bezier(0.2,0.8,0.2,1) both;
+    }
+    @keyframes tooltipIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Heatmap gradient legend bar ───────────────────── */
+    .legend-bar {
+      background: linear-gradient(90deg,
+        rgba(16,185,129,0.7),
+        rgba(234,179,8,0.85),
+        rgba(249,115,22,0.9),
+        rgba(239,68,68,0.95),
+        rgba(185,28,28,1)
+      ) !important;
+    }
+
+    /* ── Map crosshair cursor for better UX ────────────── */
+    .leaflet-container { cursor: default !important; }
+    .leaflet-dragging .leaflet-container { cursor: grabbing !important; }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ──────────────────────────────────────────────── -->
+<nav class="navbar">
+  <a href="/admin/dashboard.html" class="nav-brand">
+    <div class="nav-brand-icon">C</div>
+    <span class="nav-brand-text"><span>Civic</span>CMS</span>
+  </a>
+  <div class="nav-links">
+    <a href="/admin/dashboard.html" id="anav-dashboard">Dashboard</a>
+    <a href="/admin/complaints.html" id="anav-complaints">Complaints</a>
+    <a href="/admin/alerts.html" id="anav-alerts">🚨 Alerts</a>
+    <a href="/admin/heatmap.html" id="anav-heatmap" class="active">Heatmap</a>
+    <a href="/chatbot.html" id="anav-chatbot">🤖 Chatbot</a>
+  </div>
+  <div class="nav-actions">
+    <button class="btn btn-ghost" onclick="loadData()" id="refresh-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+    <button class="btn btn-danger" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<!-- ── MAIN LAYOUT ──────────────────────────────────────────── -->
+<div class="app-wrap">
+
+  <!-- ── SIDE PANEL ────────────────────────────────────────── -->
+  <aside class="side-panel">
+
+    <!-- Visualisation mode -->
+    <div class="panel-header">
+      <div class="panel-title">Visualisation Mode</div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="btn-heat" onclick="switchView('heat')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+          Heat
+        </button>
+        <button class="view-btn" id="btn-pins" onclick="switchView('pins')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Pins
+        </button>
+        <button class="view-btn" id="btn-zones-view" onclick="switchView('zones')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          Zones
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card critical">
+        <div class="stat-val" id="stat-critical">—</div>
+        <div class="stat-label">Critical</div>
+      </div>
+      <div class="stat-card high">
+        <div class="stat-val" id="stat-high">—</div>
+        <div class="stat-label">High</div>
+      </div>
+      <div class="stat-card medium">
+        <div class="stat-val" id="stat-medium">—</div>
+        <div class="stat-label">Medium</div>
+      </div>
+      <div class="stat-card low">
+        <div class="stat-val" id="stat-low">—</div>
+        <div class="stat-label">Low</div>
+      </div>
+    </div>
+
+    <!-- Risk Zones -->
+    <div class="panel-section">
+      <div class="section-title">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        Risk Zones
+      </div>
+      <div class="zone-row">
+        <span class="zone-row-label">Zone overlays</span>
+        <label class="gm-toggle">
+          <input type="checkbox" id="toggle-zones" onchange="toggleZoneOverlay(this.checked)" checked>
+          <span class="gm-track"></span>
+        </label>
+      </div>
+      <div class="zone-list">
+        <div class="zone-item"><div class="zone-dot" style="background:#f28b82;"></div><span>Critical (≥5 complaints)</span></div>
+        <div class="zone-item"><div class="zone-dot" style="background:#fcad70;"></div><span>High (≥3 complaints)</span></div>
+        <div class="zone-item"><div class="zone-dot" style="background:#fdd663;"></div><span>Medium (≥2 complaints)</span></div>
+        <div class="zone-item"><div class="zone-dot" style="background:#81c995;"></div><span>Low (&lt;2 complaints)</span></div>
+      </div>
+    </div>
+
+    <!-- Intensity Legend -->
+    <div class="panel-section">
+      <div class="section-title">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+        Intensity Legend
+      </div>
+      <div class="legend-bar"></div>
+      <div class="legend-labels"><span>Low</span><span>Medium</span><span>High</span><span>Critical</span></div>
+      <div class="legend-items">
+        <div class="legend-item">
+          <div class="legend-left"><div class="legend-swatch" style="background:#81c995;"></div><span class="legend-name">Low</span></div>
+          <span class="legend-count" id="lc-low">0</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-left"><div class="legend-swatch" style="background:#fdd663;"></div><span class="legend-name">Medium</span></div>
+          <span class="legend-count" id="lc-medium">0</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-left"><div class="legend-swatch" style="background:#fcad70;"></div><span class="legend-name">High</span></div>
+          <span class="legend-count" id="lc-high">0</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-left"><div class="legend-swatch" style="background:#f28b82;"></div><span class="legend-name">Critical</span></div>
+          <span class="legend-count" id="lc-critical">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category breakdown -->
+    <div class="panel-section">
+      <div class="section-title">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        By Category
+      </div>
+      <div id="cat-bars"><!-- populated by JS --></div>
+    </div>
+
+    <div class="panel-footer">
+      <button class="btn btn-ghost" onclick="map.setView([13.0827,80.2707],12)" style="width:100%;justify-content:center;border-radius:8px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Reset View
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAP AREA ───────────────────────────────────────────── -->
+  <div class="map-area">
+    <div id="map-canvas"></div>
+
+    <!-- Top-right controls (Google Maps style) -->
+    <div class="map-topbar">
+      <div class="map-chip">
+        <div class="pulse-dot"></div>
+        <span id="point-count">0 points</span>
+      </div>
+      <div class="map-chip clickable" id="sat-toggle" onclick="toggleSatellite()" title="Toggle satellite view">
+        <span>🛰️</span>
+        <span id="sat-label">Satellite</span>
+      </div>
+      <div class="map-chip clickable" id="geojson-btn" onclick="downloadGeoJSON()" title="Download GeoJSON">
+        <span>📥</span>
+        <span>Export GeoJSON</span>
+      </div>
+    </div>
+
+    <!-- Bottom-left layer panel (Google Maps Layers panel) -->
+    <div class="layer-panel">
+      <div class="layer-panel-title">Map Layers</div>
+      <button class="layer-btn active" id="lbtn-heat" onclick="switchView('heat')">
+        <span class="layer-icon">🔥</span> Heatmap
+      </button>
+      <button class="layer-btn" id="lbtn-pins" onclick="switchView('pins')">
+        <span class="layer-icon">📍</span> Pins
+      </button>
+      <button class="layer-btn" id="lbtn-zones" onclick="switchView('zones')">
+        <span class="layer-icon">⬡</span> Risk Zones
+      </button>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="map-overlay" id="map-overlay">
+      <div class="spinner-ring"></div>
+      <div class="overlay-text">Loading complaint data…</div>
+    </div>
+
+    <!-- Error toast -->
+    <div class="map-error" id="map-error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="error-msg">Failed to load data.</span>
+    </div>
+  </div>
+
+</div><!-- /.app-wrap -->
+
+<!-- ── SCRIPTS ──────────────────────────────────────────────── -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- ══════════════════════════════════════════════════════
+     leaflet-heat — FIXED inline bundle
+     BUG FIX: removed this._heat.minOpacity() call which does
+     not exist in simpleheat. minOpacity is passed directly to
+     draw() as a numeric argument, which IS supported.
+════════════════════════════════════════════════════════ -->
+<script>
+/*! leaflet-heat — fixed inline bundle */
+(function(factory){typeof define==='function'&&define.amd?define(['leaflet'],factory):typeof module!=='undefined'&&module.exports?factory(require('leaflet')):factory(L)})(function(L){L.HeatLayer=(L.Layer?L.Layer:L.Class).extend({initialize:function(latlngs,options){this._latlngs=latlngs;L.setOptions(this,options)},setLatLngs:function(latlngs){this._latlngs=latlngs;return this.redraw()},addLatLng:function(latlng){this._latlngs.push(latlng);return this.redraw()},setOptions:function(options){L.setOptions(this,options);if(this._heat)this._updateOptions();return this.redraw()},redraw:function(){if(this._heat&&!this._frame&&this._map&&!this._map._animating)this._frame=L.Util.requestAnimFrame(this._redraw,this);return this},onAdd:function(map){this._map=map;if(!this._canvas)this._initCanvas();if(this.options.opacity||this.options.opacity===0)this.setOpacity(this.options.opacity);var animated=this._map.options.zoomAnimation&&L.Browser.any3d;map.on('moveend',this._reset,this);if(animated)map.on('zoomanim',this._animateZoom,this);this._reset();map.getPanes().overlayPane.appendChild(this._canvas)},onRemove:function(map){map.getPanes().overlayPane.removeChild(this._canvas);map.off('moveend',this._reset,this);if(map.options.zoomAnimation)map.off('zoomanim',this._animateZoom,this)},addTo:function(map){map.addLayer(this);return this},setOpacity:function(opacity){this._canvas.style.opacity=opacity;return this},setZIndex:function(zIndex){this._canvas.style.zIndex=zIndex;return this},bringToFront:function(){if(this._canvas)this._canvas.parentNode.appendChild(this._canvas);return this},bringToBack:function(){var pane=this._canvas.parentNode;if(this._canvas)pane.insertBefore(this._canvas,pane.firstChild);return this},getEvents:function(){var events={viewreset:this._reset,moveend:this._reset};if(this._zoomAnimated)events.zoomanim=this._animateZoom;return events},_initCanvas:function(){var canvas=this._canvas=L.DomUtil.create('canvas','leaflet-heatmap-layer leaflet-layer');var originProp=L.DomUtil.testProp(['transformOrigin','WebkitTransformOrigin','msTransformOrigin']);canvas.style[originProp]='50% 50%';var size=this._map.getSize();canvas.width=size.x;canvas.height=size.y;var animated=this._map.options.zoomAnimation&&L.Browser.any3d;L.DomUtil.addClass(canvas,(animated?'leaflet-zoom-animated':'leaflet-zoom-hide'));this._updateOptions()},
+/* FIXED _updateOptions: removed this._heat.minOpacity() — method doesn't exist in simpleheat.
+   minOpacity is handled as a numeric param in draw() below. */
+_updateOptions:function(){this._heat=simpleheat(this._canvas);if(this.options.max)this._heat.max(this.options.max);if(this.options.radius)this._heat.radius(this.options.radius,this.options.blur);if(this.options.gradient)this._heat.gradient(this.options.gradient)},
+_reset:function(){var topLeft=this._map.containerPointToLayerPoint([0,0]);L.DomUtil.setPosition(this._canvas,topLeft);var size=this._map.getSize();if(this._heat._width!==size.x){this._canvas.width=this._heat._width=size.x}if(this._heat._height!==size.y){this._canvas.height=this._heat._height=size.y}this._redraw()},_redraw:function(){if(!this._map)return;var data=[],r=this._heat._r,size=this._map.getSize(),bounds=new L.Bounds(L.point([-r,-r]),size.add([r,r])),max=this.options.max===undefined?1:this.options.max,maxZoom=this.options.maxZoom===undefined?this._map.getMaxZoom():this.options.maxZoom,v=1/Math.pow(2,Math.max(0,Math.min(maxZoom-this._map.getZoom(),12))),cellSize=r/2,grid=[],panePos=this._map._getMapPanePos(),offsetX=panePos.x%cellSize,offsetY=panePos.y%cellSize,i,len,p,cell,x,y,j;for(i=0,len=this._latlngs.length;i<len;i++){p=this._map.latLngToContainerPoint(this._latlngs[i]);if(!bounds.contains(p))continue;x=Math.floor((p.x-offsetX)/cellSize)+2;y=Math.floor((p.y-offsetY)/cellSize)+2;var alt=this._latlngs[i].alt!==undefined?this._latlngs[i].alt:this._latlngs[i][2]!==undefined?+this._latlngs[i][2]:1;var k=alt*v;grid[y]=grid[y]||[];cell=grid[y][x];if(!cell)grid[y][x]=[p.x,p.y,k];else{cell[0]=(cell[0]*cell[2]+p.x*k)/(cell[2]+k);cell[1]=(cell[1]*cell[2]+p.y*k)/(cell[2]+k);cell[2]+=k}}for(i=0,len=grid.length;i<len;i++)if(grid[i])for(var j2=0,len2=grid[i].length;j2<len2;j2++)if(cell=grid[i][j2])data.push([Math.round(cell[0]),Math.round(cell[1]),Math.min(cell[2],max)]);this._heat.data(data).draw(this.options.minOpacity||0.35);this._frame=null},_animateZoom:function(e){var scale=this._map.getZoomScale(e.zoom),offset=this._map._getCenterOffset(e.center)._multiplyBy(-scale).subtract(this._map._getMapPanePos());if(L.DomUtil.setTransform){L.DomUtil.setTransform(this._canvas,offset,scale)}else{this._canvas.style[L.DomUtil.TRANSFORM]=L.DomUtil.getTranslateString(offset)+' scale('+scale+')'}}}); L.heatLayer=function(latlngs,options){return new L.HeatLayer(latlngs,options)};});
+
+/* simpleheat — unchanged, required by leaflet-heat */
+(function(global){function simpleheat(canvas){if(!(this instanceof simpleheat))return new simpleheat(canvas);this._canvas=canvas=typeof canvas==='string'?document.getElementById(canvas):canvas;this._ctx=canvas.getContext('2d');this._width=canvas.width;this._height=canvas.height;this._max=1;this._data=[]}simpleheat.prototype={defaultRadius:25,defaultGradient:{0.4:'blue',0.6:'cyan',0.7:'lime',0.8:'yellow',1.0:'red'},data:function(data){this._data=data;return this},max:function(max){this._max=max;return this},add:function(point){this._data.push(point);return this},clear:function(){this._data=[];return this},radius:function(r,blur){blur=blur===undefined?15:blur;var circle=this._circle=this._createCanvas(),ctx=circle.getContext('2d'),r2=this._r=r+blur;circle.width=circle.height=r2*2;ctx.shadowOffsetX=ctx.shadowOffsetY=r2*2;ctx.shadowBlur=blur;ctx.shadowColor='black';ctx.beginPath();ctx.arc(-r2,0,r,0,Math.PI*2,true);ctx.closePath();ctx.fill();return this},resize:function(){this._width=this._canvas.width;this._height=this._canvas.height},gradient:function(grad){var canvas=this._createCanvas(),ctx=canvas.getContext('2d'),gradient=ctx.createLinearGradient(0,0,0,256);canvas.width=1;canvas.height=256;for(var i in grad)gradient.addColorStop(+i,grad[i]);ctx.fillStyle=gradient;ctx.fillRect(0,0,1,256);this._grad=ctx.getImageData(0,0,1,256).data;return this},draw:function(minOpacity){if(!this._circle)this.radius(this.defaultRadius);if(!this._grad)this.gradient(this.defaultGradient);var ctx=this._ctx;ctx.clearRect(0,0,this._width,this._height);for(var i=0,len=this._data.length,p;i<len;i++){p=this._data[i];ctx.globalAlpha=Math.min(Math.max(p[2]/this._max,minOpacity===undefined?0.05:minOpacity),1);ctx.drawImage(this._circle,p[0]-this._r,p[1]-this._r)}var colored=ctx.getImageData(0,0,this._width,this._height);this._colorize(colored.data,this._grad);ctx.putImageData(colored,0,0);return this},_colorize:function(pixels,gradient){for(var i=0,len=pixels.length,j;i<len;i+=4){j=pixels[i+3]*4;if(j){pixels[i]=gradient[j];pixels[i+1]=gradient[j+1];pixels[i+2]=gradient[j+2]}}},_createCanvas:function(){if(typeof document!=='undefined')return document.createElement('canvas');var c=new Canvas;return c}};if(typeof module!=='undefined')module.exports=simpleheat;else global.simpleheat=simpleheat})(this);
+</script>
+
+<script src="/js/api.js"></script>
+
+<script>
+  // ── Auth guard ───────────────────────────────────────────
+  if (!API.isAdmin()) window.location.href = '/admin/login.html';
+
+  function logout() {
+    API.clearSession();
+    window.location.href = '/admin/login.html';
+  }
+
+  // ── State ─────────────────────────────────────────────────
+  let map, heatLayer, pinsLayer, zoneLayer;
+  let currentView  = 'heat';
+  let rawPoints    = [];
+  let isSatellite  = false;
+  let zonesVisible = true;
+
+  // ── Init map ─────────────────────────────────────────────
+  map = L.map('map-canvas', {
+    center: [13.0827, 80.2707],
+    zoom: 12,
+    zoomControl: false,         // We'll add custom-positioned zoom control
+    attributionControl: true,
+    // Smooth zoom settings
+    zoomSnap: 0.25,             // Allow fractional zoom levels for smooth feel
+    zoomDelta: 0.5,             // Each +/- click zooms by 0.5 levels (smoother)
+    wheelPxPerZoomLevel: 120,   // Slower, smoother mouse-wheel zoom
+    inertia: true,              // Pan inertia for smooth deceleration
+    inertiaDeceleration: 2800,
+    inertiaMaxSpeed: 1200,
+    easeLinearity: 0.25,        // Smoother pan easing curve
+  });
+
+  // Add zoom control bottom-right (Google Maps style)
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  // ── Tile layers ──────────────────────────────────────────
+  const TILE_DARK = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  });
+  const TILE_SAT = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a> — Esri, Maxar, GeoEye',
+    maxZoom: 19,
+  });
+  const TILE_SAT_LABELS = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 19, opacity: 0.6,
+  });
+
+  TILE_DARK.addTo(map);
+
+  // ── Satellite toggle ──────────────────────────────────────
+  function toggleSatellite() {
+    isSatellite = !isSatellite;
+    const pill  = document.getElementById('sat-toggle');
+    const label = document.getElementById('sat-label');
+    if (isSatellite) {
+      map.removeLayer(TILE_DARK);
+      TILE_SAT.addTo(map);
+      TILE_SAT_LABELS.addTo(map);
+      pill.classList.add('active');
+      label.textContent = 'Dark Map';
+    } else {
+      map.removeLayer(TILE_SAT);
+      map.removeLayer(TILE_SAT_LABELS);
+      TILE_DARK.addTo(map);
+      pill.classList.remove('active');
+      label.textContent = 'Satellite';
+    }
+    // Keep data layers on top
+    [heatLayer, pinsLayer, zoneLayer].forEach(l => l && l.bringToFront && l.bringToFront());
+  }
+
+  // ── Colour helpers ────────────────────────────────────────
+  const THRESHOLDS = { critical: 5, high: 3, medium: 2 };
+
+  function riskOf(count) {
+    if (count >= THRESHOLDS.critical) return 'critical';
+    if (count >= THRESHOLDS.high)     return 'high';
+    if (count >= THRESHOLDS.medium)   return 'medium';
+    return 'low';
+  }
+
+  const RISK_COLOR = {
+    critical: { fill: '#f28b82', stroke: '#ea4335' },
+    high:     { fill: '#fcad70', stroke: '#fa7b17' },
+    medium:   { fill: '#fdd663', stroke: '#f9ab00' },
+    low:      { fill: '#81c995', stroke: '#34a853' },
+  };
+
+  function pinColor(count)  { return RISK_COLOR[riskOf(count)].fill; }
+  function pinStroke(count) { return RISK_COLOR[riskOf(count)].stroke; }
+
+  // ── API load ──────────────────────────────────────────────
+  async function loadData() {
+    showLoading(true);
+    hideError();
+    setRefreshSpin(true);
+
+    try {
+      let data;
+      try {
+        data = await API.get('/api/heatmap');
+      } catch (e1) {
+        try {
+          data = await API.get('/api/v1/analytics/heatmap');
+        } catch (e2) {
+          throw new Error('Both heatmap endpoints failed.');
+        }
+      }
+
+      if (!Array.isArray(data)) throw new Error('Unexpected data format from API.');
+
+      rawPoints = data;
+      updateSidePanel();
+      renderCurrentView();
+      document.getElementById('point-count').textContent =
+        rawPoints.length + (rawPoints.length === 1 ? ' point' : ' points');
+
+    } catch (err) {
+      console.error('[Heatmap] Load failed:', err);
+      showError('Could not load data: ' + (err.message || 'Unknown error'));
+    } finally {
+      showLoading(false);
+      setRefreshSpin(false);
+    }
+  }
+
+  // ── Render: Heatmap ───────────────────────────────────────
+  function renderHeat() {
+    clearLayers();
+    if (!rawPoints.length) return;
+
+    // Normalise complaint counts to 0..1 using square-root scale
+    // so low-count areas still show (not completely washed out by hotspots)
+    const counts  = rawPoints.map(p => p.count || 1);
+    const maxCount = Math.max(...counts);
+    const sqrtMax  = Math.sqrt(maxCount);
+
+    const latlngs = rawPoints.map(p => {
+      const norm = Math.sqrt(p.count || 1) / sqrtMax; // sqrt normalisation
+      return [p.lat, p.lng, Math.max(0.08, norm)];    // floor at 0.08 so all points visible
+    });
+
+    // Dynamic radius based on zoom level for accurate clustering feel
+    const zoom   = map.getZoom();
+    const radius = Math.max(18, Math.min(55, zoom * 3.2));
+    const blur   = Math.round(radius * 0.65);
+
+    heatLayer = L.heatLayer(latlngs, {
+      radius,
+      blur,
+      maxZoom:    19,
+      minOpacity: 0.30,
+      max: 1.0,
+      // Professional civic risk gradient: green→yellow→orange→red
+      gradient: {
+        0.00: 'rgba(16,185,129,0)',      // transparent green (near-zero)
+        0.15: 'rgba(16,185,129,0.7)',    // green — safe/low
+        0.35: 'rgba(234,179,8,0.85)',    // yellow — medium
+        0.55: 'rgba(249,115,22,0.9)',    // orange — high
+        0.80: 'rgba(239,68,68,0.95)',    // red — critical
+        1.00: 'rgba(185,28,28,1)',       // deep red — extreme
+      }
+    }).addTo(map);
+
+    // Re-render when zoom changes to adjust radius
+    map.off('zoomend.heat');
+    map.on('zoomend.heat', () => {
+      if (heatLayer && currentView === 'heat') renderHeat();
+    });
+
+    if (zonesVisible) renderZones();
+  }
+
+  // ── Render: Pins ──────────────────────────────────────────
+  function renderPins() {
+    clearLayers();
+    if (!rawPoints.length) return;
+
+    pinsLayer = L.layerGroup();
+
+    rawPoints.forEach(p => {
+      const count  = p.count || 1;
+      const color  = pinColor(count);
+      const stroke = pinStroke(count);
+      const radius = Math.min(6 + count * 1.4, 20);
+      const risk   = riskOf(count);
+      const cat    = p.category || 'OTHER';
+
+      const circle = L.circleMarker([p.lat, p.lng], {
+        radius, fillColor: color,
+        color: stroke, weight: 2,
+        fillOpacity: 0.85, opacity: 1,
+      });
+
+      const riskLabel = risk.charAt(0).toUpperCase() + risk.slice(1);
+
+      circle.bindTooltip(`
+        <div class="leaflet-tooltip-gm">
+          <div class="tt-header">
+            <div class="tt-dot" style="background:${color};"></div>
+            ${riskLabel} Risk
+          </div>
+          <div class="tt-row">
+            <span class="tt-label">Complaints</span>
+            <span class="tt-val">${count}</span>
+          </div>
+          <div class="tt-row">
+            <span class="tt-label">Category</span>
+            <span class="tt-val">${cat}</span>
+          </div>
+          <div class="tt-row">
+            <span class="tt-label">Location</span>
+            <span class="tt-val">${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</span>
+          </div>
+        </div>
+      `, { className: '', sticky: true, offset: [14, 0], direction: 'right' });
+
+      circle.on('mouseover', function() { this.setStyle({ weight: 3, fillOpacity: 1 }); });
+      circle.on('mouseout',  function() { this.setStyle({ weight: 2, fillOpacity: 0.85 }); });
+      circle.addTo(pinsLayer);
+    });
+
+    pinsLayer.addTo(map);
+    if (zonesVisible) renderZones();
+  }
+
+  // ── Render: GeoJSON Zones ─────────────────────────────────
+  const CELL = 0.013; // ~1.4 km grid cell
+
+  function buildZoneGeoJSON(points) {
+    const grid = {};
+    points.forEach(p => {
+      const gx  = Math.floor(p.lat / CELL);
+      const gy  = Math.floor(p.lng / CELL);
+      const key = `${gx}:${gy}`;
+      if (!grid[key]) grid[key] = { gx, gy, count: 0, cats: {} };
+      grid[key].count += (p.count || 1);
+      const cat = p.category || 'OTHER';
+      grid[key].cats[cat] = (grid[key].cats[cat] || 0) + 1;
+    });
+
+    const features = Object.values(grid).map(cell => {
+      const lat1 = cell.gx * CELL, lat2 = lat1 + CELL;
+      const lng1 = cell.gy * CELL, lng2 = lng1 + CELL;
+      const topCat = Object.entries(cell.cats).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'OTHER';
+      return {
+        type: 'Feature',
+        properties: { count: cell.count, risk: riskOf(cell.count), topCat,
+          lat: (lat1+lat2)/2, lng: (lng1+lng2)/2 },
+        geometry: { type: 'Polygon', coordinates: [[[lng1,lat1],[lng2,lat1],[lng2,lat2],[lng1,lat2],[lng1,lat1]]] }
+      };
+    });
+    return { type: 'FeatureCollection', features };
+  }
+
+  function renderZones() {
+    if (zoneLayer) { map.removeLayer(zoneLayer); zoneLayer = null; }
+    if (!rawPoints.length || !zonesVisible) return;
+
+    const geojson = buildZoneGeoJSON(rawPoints);
+
+    zoneLayer = L.geoJSON(geojson, {
+      style: f => {
+        const c = RISK_COLOR[f.properties.risk];
+        return {
+          fillColor: c.fill, color: c.stroke,
+          weight: 1.5, opacity: 0.9, fillOpacity: 0.2,
+          dashArray: f.properties.risk === 'critical' ? null : '5 4',
+        };
+      },
+      onEachFeature: (f, layer) => {
+        const p    = f.properties;
+        const c    = RISK_COLOR[p.risk];
+        const risk = p.risk.charAt(0).toUpperCase() + p.risk.slice(1);
+
+        layer.bindTooltip(`
+          <div class="leaflet-tooltip-gm">
+            <div class="tt-header">
+              <div class="tt-dot" style="background:${c.fill};"></div>
+              ${risk} Zone
+            </div>
+            <div class="tt-row"><span class="tt-label">Complaints</span><span class="tt-val">${p.count}</span></div>
+            <div class="tt-row"><span class="tt-label">Top Issue</span><span class="tt-val">${p.topCat}</span></div>
+            <div class="tt-row"><span class="tt-label">Centre</span><span class="tt-val">${p.lat.toFixed(3)}°, ${p.lng.toFixed(3)}°</span></div>
+          </div>
+        `, { className: '', sticky: true, offset: [8, 0], direction: 'right' });
+
+        layer.on('mouseover', function() { this.setStyle({ fillOpacity: 0.38, weight: 2.5 }); });
+        layer.on('mouseout',  function() { this.setStyle({ fillOpacity: 0.2,  weight: 1.5 }); });
+      }
+    }).addTo(map);
+
+    // Keep data on top after zone render
+    if (heatLayer) heatLayer.bringToFront();
+    if (pinsLayer) pinsLayer.bringToFront();
+  }
+
+  // ── Render only zones ─────────────────────────────────────
+  function renderZonesOnly() {
+    clearLayers();
+    if (!rawPoints.length) return;
+    zonesVisible = true;
+    renderZones();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────
+  function clearLayers() {
+    if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+    if (pinsLayer) { map.removeLayer(pinsLayer); pinsLayer = null; }
+    if (zoneLayer) { map.removeLayer(zoneLayer); zoneLayer = null; }
+  }
+
+  // ── View switch ───────────────────────────────────────────
+  function switchView(view) {
+    currentView = view;
+
+    // Side panel buttons
+    ['heat','pins','zones-view'].forEach(id => {
+      document.getElementById('btn-' + id)?.classList.remove('active');
+    });
+    document.getElementById('btn-' + (view === 'zones' ? 'zones-view' : view))?.classList.add('active');
+
+    // Layer panel buttons
+    ['heat','pins','zones'].forEach(id => {
+      document.getElementById('lbtn-' + id)?.classList.remove('active');
+    });
+    document.getElementById('lbtn-' + view)?.classList.add('active');
+
+    if (view === 'heat')  renderHeat();
+    else if (view === 'pins')  renderPins();
+    else if (view === 'zones') renderZonesOnly();
+  }
+
+  function renderCurrentView() {
+    if (currentView === 'heat')  renderHeat();
+    else if (currentView === 'pins')  renderPins();
+    else if (currentView === 'zones') renderZonesOnly();
+  }
+
+  // Zone overlay toggle (checkbox — independent of view mode)
+  function toggleZoneOverlay(on) {
+    zonesVisible = on;
+    if (on) {
+      renderZones();
+    } else {
+      if (zoneLayer) { map.removeLayer(zoneLayer); zoneLayer = null; }
+    }
+  }
+
+  // ── Download GeoJSON ──────────────────────────────────────
+  function downloadGeoJSON() {
+    if (!rawPoints.length) { showError('No data loaded — refresh first.'); return; }
+    const geojson = buildZoneGeoJSON(rawPoints);
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'civic-risk-zones.geojson'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Side panel update ─────────────────────────────────────
+  function updateSidePanel() {
+    const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+    const catMap  = {};
+
+    rawPoints.forEach(p => {
+      const c = p.count || 1;
+      counts[riskOf(c)]++;
+      const cat = p.category || 'OTHER';
+      catMap[cat] = (catMap[cat] || 0) + c;
+    });
+
+    document.getElementById('stat-critical').textContent = counts.critical;
+    document.getElementById('stat-high').textContent     = counts.high;
+    document.getElementById('stat-medium').textContent   = counts.medium;
+    document.getElementById('stat-low').textContent      = counts.low;
+
+    document.getElementById('lc-critical').textContent = counts.critical;
+    document.getElementById('lc-high').textContent     = counts.high;
+    document.getElementById('lc-medium').textContent   = counts.medium;
+    document.getElementById('lc-low').textContent      = counts.low;
+
+    const sorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+    const maxVal  = sorted[0]?.[1] || 1;
+    const catEl   = document.getElementById('cat-bars');
+    catEl.innerHTML = sorted.map(([cat, val]) => `
+      <div class="cat-bar-row">
+        <div class="cat-bar-header">
+          <span class="cat-name">${cat}</span>
+          <span class="cat-count">${val}</span>
+        </div>
+        <div class="cat-track">
+          <div class="cat-fill" style="width:${Math.round(val/maxVal*100)}%;"></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── UI helpers ────────────────────────────────────────────
+  function showLoading(on) {
+    document.getElementById('map-overlay').classList.toggle('hidden', !on);
+  }
+  function showError(msg) {
+    const el = document.getElementById('map-error');
+    document.getElementById('error-msg').textContent = msg;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 5000);
+  }
+  function hideError() {
+    document.getElementById('map-error').classList.remove('visible');
+  }
+  function setRefreshSpin(on) {
+    const btn = document.getElementById('refresh-btn');
+    if (!btn) return;
+    btn.disabled = on;
+    btn.style.opacity = on ? '.6' : '1';
+  }
+
+  // ── Boot ──────────────────────────────────────────────────
+  loadData();
+</script>
+</body>
+</html>

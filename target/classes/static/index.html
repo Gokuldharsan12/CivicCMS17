@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>/* Prevent flash of wrong theme */
+    (function(){var t=localStorage.getItem('civicTheme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d0b1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>CivicCMS — AI-Powered Civic Issue Management</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: #0d0b1a;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ─── NAVBAR ────────────────────────────────────────── */
+    #civic-float-nav {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      width: calc(100% - 48px);
+      max-width: 1100px;
+      background: rgba(13, 11, 26, 0.55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 999px;
+      padding: 10px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: border-radius 0.3s ease;
+    }
+    #civic-float-nav.menu-open { border-radius: 20px; }
+
+    .fn-inner {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      width: 100%;
+      gap: 16px;
+    }
+
+    .fn-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .fn-logo-box {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      box-shadow: 0 0 14px rgba(124,58,237,0.45);
+    }
+    .fn-brand-text { font-size: 0.95rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
+    .fn-accent { color: #a78bfa; }
+
+    .fn-links { display: flex; align-items: center; gap: 4px; justify-content: center; }
+    .fn-link {
+      font-size: 0.82rem; font-weight: 500;
+      color: rgba(200,195,220,0.65);
+      text-decoration: none;
+      padding: 6px 13px;
+      border-radius: 999px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .fn-link:hover { color: #fff; background: rgba(255,255,255,0.07); }
+    .fn-link.active { color: #fff; }
+
+    .fn-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; position: relative; }
+    .fn-btn-ghost {
+      background: none; border: none; cursor: pointer;
+      color: rgba(200,195,220,0.6); font-size: 1rem;
+      padding: 6px; line-height: 1; border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .fn-btn-ghost:hover { color: #fff; background: rgba(255,255,255,0.07); }
+    .fn-btn-signup {
+      padding: 7px 18px; font-size: 0.8rem; font-weight: 600;
+      background: #fff; color: #0d0b1a; border-radius: 999px;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s; white-space: nowrap;
+    }
+    .fn-btn-signup:hover { opacity: 0.88; transform: scale(0.98); }
+
+    #civic-settings-panel {
+      display: none;
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: rgba(18, 15, 38, 0.98);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 10px; width: 200px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      z-index: 300; backdrop-filter: blur(20px);
+    }
+    #civic-settings-panel.open { display: block; }
+    .settings-section-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: rgba(200,195,220,0.4);
+      padding: 6px 10px 4px;
+    }
+    .theme-option, .lang-option, .logout-option {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 7px 10px; border: none;
+      background: none; border-radius: 8px; cursor: pointer;
+      font-size: 0.84rem; color: rgba(240,235,255,0.8);
+      font-family: inherit; transition: background 0.15s;
+    }
+    .theme-option:hover, .lang-option:hover { background: rgba(255,255,255,0.07); }
+    .logout-option { color: #f87171; }
+    .logout-option:hover { background: rgba(248,113,113,0.1); }
+    .lang-check { margin-left: auto; font-size: 0.75rem; }
+    .settings-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 6px 0; }
+
+    .fn-hamburger { display: none; background: none; border: none; cursor: pointer; color: rgba(200,195,220,0.8); padding: 4px; }
+    .fn-mobile-menu {
+      display: none; flex-direction: column; align-items: center;
+      width: 100%; gap: 4px; overflow: hidden; max-height: 0; opacity: 0;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+    }
+    .fn-mobile-menu.open { display: flex; max-height: 400px; opacity: 1; padding: 12px 0; }
+    .fn-mobile-link {
+      font-size: 0.9rem; color: rgba(200,195,220,0.8); text-decoration: none;
+      width: 100%; text-align: center; padding: 8px 0; border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .fn-mobile-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+
+    @media(max-width: 700px) {
+      .fn-links { display: none; }
+      .fn-btn-signup { display: none; }
+      .fn-hamburger { display: flex; }
+    }
+
+    /* ─── HERO ──────────────────────────────────────────── */
+    #wave-hero {
+      position: relative;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #080612;
+    }
+
+    /* Layered dark purple radial gradient — exactly like screenshot */
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background:
+        /* Top-left subtle pink bloom */
+        radial-gradient(ellipse 55% 45% at 15% 25%, rgba(160,30,180,0.12) 0%, transparent 60%),
+        /* Center main purple glow — the big orb */
+        radial-gradient(ellipse 70% 60% at 50% 38%, rgba(90,30,160,0.52) 0%, rgba(60,15,110,0.32) 35%, transparent 65%),
+        /* Bottom-right subtle bloom */
+        radial-gradient(ellipse 40% 35% at 80% 75%, rgba(50,10,100,0.18) 0%, transparent 55%),
+        /* Base dark background */
+        linear-gradient(180deg, #0a0716 0%, #080612 60%, #060410 100%);
+    }
+
+    /* Animated glowing orb — matches the purple center glow */
+    .hero-orb {
+      position: absolute;
+      top: 36%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(700px, 90vw);
+      height: min(450px, 60vw);
+      background: radial-gradient(ellipse at center,
+        rgba(110, 40, 210, 0.38) 0%,
+        rgba(80, 20, 160, 0.18) 40%,
+        transparent 68%
+      );
+      border-radius: 50%;
+      filter: blur(50px);
+      animation: orb-breathe 7s ease-in-out infinite;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Secondary smaller orb for depth */
+    .hero-orb-2 {
+      position: absolute;
+      top: 30%;
+      left: 48%;
+      transform: translate(-50%, -50%);
+      width: min(300px, 50vw);
+      height: min(200px, 30vw);
+      background: radial-gradient(ellipse at center,
+        rgba(140, 60, 240, 0.22) 0%,
+        transparent 65%
+      );
+      border-radius: 50%;
+      filter: blur(30px);
+      animation: orb-breathe 5s ease-in-out 1s infinite reverse;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* Faint grid lines for tech feel */
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 55px 55px;
+      -webkit-mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 20%, transparent 75%);
+      mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 20%, transparent 75%);
+      pointer-events: none;
+    }
+
+    @keyframes orb-breathe {
+      0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    /* Hero content */
+    #hero-overlay {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 130px 24px 100px;
+      width: 100%;
+    }
+    #hero-content {
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Pill badge — like "New feature release!" in screenshot */
+    .hero-eyebrow-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(167, 139, 250, 0.22);
+      background: rgba(100, 50, 200, 0.12);
+      margin-bottom: 30px;
+      font-size: 0.82rem;
+      color: rgba(215, 205, 255, 0.9);
+      letter-spacing: 0.01em;
+      animation: pill-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+      cursor: default;
+    }
+    .hero-eyebrow-pill strong { color: #fff; font-weight: 600; }
+    .hero-eyebrow-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #a78bfa; box-shadow: 0 0 8px #a78bfa;
+      animation: pulse-dot 2s ease-in-out infinite; flex-shrink: 0;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:0.35; transform:scale(0.65); }
+    }
+    @keyframes pill-in {
+      from { opacity:0; transform:translateY(18px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    /* Big headline — same massive bold text from screenshot */
+    #hero-h1 {
+      font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+      font-weight: 600;
+      line-height: 1.22;
+      letter-spacing: -0.018em;
+      color: #ffffff;
+      margin: 0 0 22px;
+      animation: hero-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    @keyframes hero-in {
+      from { opacity:0; transform:translateY(26px) scale(0.97); }
+      to { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    #hero-desc {
+      font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+      color: rgba(200, 188, 230, 0.6);
+      line-height: 1.72;
+      margin: 0 auto 40px;
+      max-width: 600px;
+      font-weight: 400;
+      animation: fade-up 0.6s ease 0.32s both;
+    }
+
+    /* CTA buttons — screenshot shows "Start Free Trial" (white filled) + "Watch Demo →" (ghost) */
+    .hero-cta-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 50px;
+      animation: fade-up 0.6s ease 0.42s both;
+    }
+    .btn-hero-primary {
+      padding: 13px 30px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      background: #ffffff;
+      color: #0d0b1a;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      font-family: inherit;
+      letter-spacing: -0.01em;
+    }
+    .btn-hero-primary:hover {
+      background: #f0ecff;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.25);
+    }
+    .btn-hero-ghost {
+      padding: 13px 26px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      background: transparent;
+      color: rgba(225, 218, 255, 0.82);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .btn-hero-ghost:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.28);
+      color: #fff;
+    }
+
+    .hero-features {
+      display: flex; flex-wrap: wrap;
+      justify-content: center; gap: 10px 26px;
+      animation: fade-up 0.6s ease 0.52s both;
+    }
+    .hero-feature {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 0.78rem; color: rgba(175, 162, 208, 0.5);
+      font-weight: 500;
+    }
+    .hero-feature-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(167, 139, 250, 0.65); flex-shrink: 0;
+    }
+
+    @keyframes fade-up {
+      from { opacity:0; transform:translateY(16px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    /* Bottom fade transition from dark hero to light content */
+    .hero-fade-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 140px;
+      background: linear-gradient(to bottom, transparent 0%, #f7f8fc 100%);
+      z-index: 8;
+      pointer-events: none;
+    }
+
+    /* ─── CONTENT AREA ──────────────────────────────────── */
+    .content-section {
+      background: #f7f8fc;
+      position: relative;
+      z-index: 5;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* KPI grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 40px 0 24px;
+    }
+    @media(max-width: 700px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .kpi-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 20px 22px;
+      box-shadow: 0 2px 8px rgba(79,70,229,0.05);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .kpi-card:hover { box-shadow: 0 8px 24px rgba(79,70,229,0.1); transform: translateY(-2px); }
+    .kpi-card.success { border-top: 3px solid #16a34a; }
+    .kpi-card.warning { border-top: 3px solid #d97706; }
+    .kpi-value {
+      font-size: 2rem; font-weight: 800; color: #1e1b4b;
+      letter-spacing: -0.03em; line-height: 1; margin-bottom: 5px;
+    }
+    .kpi-label {
+      font-size: 0.74rem; font-weight: 600; color: #6b7280;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .kpi-card.skeleton {
+      animation: shimmer 1.5s ease infinite;
+      background: linear-gradient(90deg, #f0f2fa 25%, #e8ebf5 50%, #f0f2fa 75%);
+      background-size: 400% 100%;
+    }
+    @keyframes shimmer {
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+
+    /* Cards */
+    .card {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 16px; padding: 24px; margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(79,70,229,0.04);
+    }
+    .card-title {
+      font-size: 1rem; font-weight: 700; color: #1e1b4b;
+      margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;
+    }
+
+    /* Forms */
+    .form-control {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid #e5e7eb; border-radius: 10px;
+      font-size: 0.9rem; font-family: inherit; color: #1e1b4b;
+      background: #f7f8fc; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-control:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+      background: #fff;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 20px; border: none; border-radius: 10px;
+      font-size: 0.88rem; font-weight: 700; cursor: pointer;
+      text-decoration: none; transition: all 0.2s; font-family: inherit;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff;
+      box-shadow: 0 4px 14px rgba(79,70,229,0.28);
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79,70,229,0.38); }
+    .btn-sm { padding: 7px 14px; font-size: 0.8rem; }
+
+    /* Alerts */
+    .alert { padding: 14px 16px; border-radius: 10px; font-size: 0.88rem; display: flex; align-items: center; gap: 10px; }
+    .alert-info { background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; }
+    .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .badge-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .badge-yellow { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+    .badge-red { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .badge-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+    /* AI promo */
+    .chatbot-promo {
+      background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+      border: 1.5px solid #c7d2fe; border-radius: 16px;
+      padding: 24px; margin-bottom: 20px;
+    }
+    .chatbot-promo-inner { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .chatbot-emoji { font-size: 2.8rem; line-height: 1; flex-shrink: 0; }
+    .chatbot-info { flex: 1; min-width: 200px; }
+    .chatbot-title { font-weight: 800; font-size: 1.05rem; color: #4f46e5; margin-bottom: 6px; }
+    .chatbot-desc { font-size: 0.83rem; color: #6b7280; line-height: 1.55; }
+    .chatbot-meta { display: flex; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+    .chatbot-meta-item { flex: 1; min-width: 140px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; }
+    .chatbot-meta-label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 3px; }
+    .chatbot-meta-val { font-size: 0.82rem; font-weight: 700; color: #1e1b4b; }
+
+    /* How it works */
+    .page-header { padding: 24px 0 20px; }
+    .page-header h2 { font-size: 1.6rem; font-weight: 800; color: #1e1b4b; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .page-header p { font-size: 0.9rem; color: #6b7280; }
+
+    .how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+    @media(max-width: 640px) { .how-grid { grid-template-columns: 1fr; } }
+    .how-step {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+      padding: 24px; position: relative;
+      box-shadow: 0 2px 8px rgba(79,70,229,0.04);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .how-step:hover { box-shadow: 0 8px 24px rgba(79,70,229,0.1); transform: translateY(-3px); }
+    .how-step-num {
+      position: absolute; top: 16px; right: 18px;
+      font-size: 2rem; font-weight: 900; color: rgba(79,70,229,0.07);
+      letter-spacing: -0.04em; line-height: 1;
+    }
+    .how-step-icon { font-size: 2rem; display: block; margin-bottom: 12px; }
+    .how-step h3 { font-size: 1rem; font-weight: 700; color: #1e1b4b; margin-bottom: 8px; }
+    .how-step p { font-size: 0.84rem; color: #6b7280; line-height: 1.6; }
+
+    footer {
+      background: #fff; border-top: 1px solid #e5e7eb;
+      text-align: center; padding: 24px;
+      font-size: 0.82rem; color: #6b7280;
+    }
+    .f-accent { color: #4f46e5; font-weight: 700; }
+    .mono { font-family: monospace; }
+    .fade-in { animation: fade-up 0.4s ease both; }
+  </style>
+</head>
+<body>
+
+<!-- ── Floating Navbar ─────────────────────────────────────────── -->
+<header id="civic-float-nav">
+  <div class="fn-inner">
+    <a href="/index.html" class="fn-brand">
+      <div class="fn-logo-box">🏛️</div>
+      <span class="fn-brand-text">
+        <span class="fn-accent" data-cms-page="global" data-cms-key="navbar.brand.name">Civic</span><span data-cms-page="global" data-cms-key="navbar.brand.suffix">CMS</span>
+      </span>
+    </a>
+
+    <nav class="fn-links">
+      <a href="/index.html" id="nav-home" class="fn-link active">Home</a>
+      <a href="/chatbot.html" id="nav-chatbot" class="fn-link">AI Chatbot</a>
+      <a href="/submit.html" id="nav-submit" class="fn-link">Submit</a>
+      <a href="/track.html" id="nav-track" class="fn-link">Track</a>
+      <a href="/history.html" id="nav-my" class="fn-link">My Complaints</a>
+      <a href="/feedback-wall.html" id="nav-reviews" class="fn-link">💬 Reviews</a>
+    </nav>
+
+    <div class="fn-actions">
+      <button class="fn-btn-ghost" id="civic-gear-btn" onclick="LangManager.toggleSettings(event)" title="Settings">⚙️</button>
+      <div id="civic-settings-panel">
+        <div class="settings-section-title">🌐 Language</div>
+        <button class="lang-option" id="langopt-en" onclick="LangManager.switchTo('en')"><span>🇬🇧</span><span>English</span><span class="lang-check" id="lcheck-en"></span></button>
+        <button class="lang-option" id="langopt-ta" onclick="LangManager.switchTo('ta')"><span>🇮🇳</span><span>தமிழ்</span><span class="lang-check" id="lcheck-ta"></span></button>
+        <button class="lang-option" id="langopt-hi" onclick="LangManager.switchTo('hi')"><span>🇮🇳</span><span>हिंदी</span><span class="lang-check" id="lcheck-hi"></span></button>
+        <div class="settings-divider"></div>
+        <button class="logout-option" onclick="LangManager.doLogout()"><span>🚪</span><span id="settings-logout-text">Logout</span></button>
+      </div>
+      <button class="fn-hamburger" id="fn-hamburger" aria-label="Open menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="fn-mobile-menu" id="fn-mobile-menu">
+    <a href="/index.html" class="fn-mobile-link">Home</a>
+    <a href="/chatbot.html" class="fn-mobile-link">🤖 AI Chatbot</a>
+    <a href="/submit.html" class="fn-mobile-link">Submit</a>
+    <a href="/track.html" class="fn-mobile-link">Track</a>
+    <a href="/history.html" class="fn-mobile-link">My Complaints</a>
+    <a href="/feedback-wall.html" class="fn-mobile-link">💬 Reviews</a>
+    <a href="/settings.html" class="fn-mobile-link">⚙️ Settings</a>
+  </div>
+</header>
+
+<!-- ── HERO — Dark purple radial glow background ───────────────── -->
+<section id="wave-hero" aria-label="Hero section">
+  <!-- Background gradients -->
+  <div class="hero-bg"></div>
+  <!-- Animated glow orbs -->
+  <div class="hero-orb"></div>
+  <div class="hero-orb-2"></div>
+  <!-- Subtle grid overlay -->
+  <div class="hero-grid"></div>
+
+  <div id="hero-overlay">
+    <div id="hero-content">
+
+      <!-- Announcement pill — like screenshot's "New feature release!" badge -->
+      <div class="hero-eyebrow-pill">
+        <span class="hero-eyebrow-dot"></span>
+        <span id="hero-eyebrow">🎉 New feature release! <strong>Check out our AI Assistant →</strong></span>
+      </div>
+
+      <!-- Massive headline -->
+      <h1 id="hero-h1">Multimodal Civic Issue Intelligence<br>for Predictive Urban Service Insights<br>and Real-Time Governance Analytics</h1>
+
+      <!-- Subtitle -->
+      <p id="hero-desc">Report road damage, water leaks, electricity faults and more. Our AI instantly classifies, prioritises and routes your complaint to the right department.</p>
+
+      <!-- CTA Buttons -->
+      <div class="hero-cta-row">
+        <a href="/submit.html" class="btn-hero-primary" id="hero-btn-submit">Submit a Complaint</a>
+        <a href="/track.html" class="btn-hero-ghost" id="hero-btn-track">Track Status →</a>
+      </div>
+
+      <!-- Feature pills -->
+      <div class="hero-features">
+        <div class="hero-feature"><div class="hero-feature-dot"></div><span id="hf1">AI Auto-Classification</span></div>
+        <div class="hero-feature"><div class="hero-feature-dot"></div><span id="hf2">Real-Time Status</span></div>
+        <div class="hero-feature"><div class="hero-feature-dot"></div><span id="hf3">Duplicate Detection</span></div>
+        <div class="hero-feature"><div class="hero-feature-dot"></div><span id="hf4">Risk Scoring Engine</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Smooth fade to light section below -->
+  <div class="hero-fade-bottom"></div>
+</section>
+
+<!-- ── CONTENT SECTIONS ────────────────────────────────────────── -->
+<div class="content-section">
+  <div class="container">
+
+    <!-- KPI Stats -->
+    <div class="kpi-grid" id="stats-grid">
+      <div class="kpi-card skeleton" style="height:86px;"></div>
+      <div class="kpi-card skeleton" style="height:86px;"></div>
+      <div class="kpi-card skeleton" style="height:86px;"></div>
+      <div class="kpi-card skeleton" style="height:86px;"></div>
+    </div>
+
+    <!-- Quick Track -->
+    <div class="card">
+      <div class="card-title" id="track-title">🔍 Quick Track</div>
+      <div style="display:flex;gap:10px;">
+        <input id="quick-id" type="text" class="form-control" placeholder="Enter Complaint ID — e.g. 42" style="flex:1;">
+        <button class="btn btn-primary" id="track-btn" onclick="quickTrack()">Track</button>
+      </div>
+      <div id="quick-result" style="margin-top:12px;display:none;"></div>
+    </div>
+
+    <!-- AI Chatbot Promo -->
+    <div class="chatbot-promo">
+      <div class="chatbot-promo-inner">
+        <div class="chatbot-emoji">🤖</div>
+        <div class="chatbot-info">
+          <div class="chatbot-title">New: AI Chatbot Complaint Assistant</div>
+          <div class="chatbot-desc">
+            Just <em>describe</em> your issue in plain English — CivicBot auto-detects category, urgency &amp; department.
+            Supports voice input 🎤, image upload 📷 and duplicate detection 🔍.
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-shrink:0;">
+          <a href="/chatbot.html" class="btn btn-primary btn-sm" style="text-decoration:none;">Open Chatbot →</a>
+        </div>
+      </div>
+      <div class="chatbot-meta">
+        <div class="chatbot-meta-item">
+          <div class="chatbot-meta-label">AI Categories</div>
+          <div class="chatbot-meta-val">💧⚡🛣️🗑️🌊💡 10+</div>
+        </div>
+        <div class="chatbot-meta-item">
+          <div class="chatbot-meta-label">Urgency Levels</div>
+          <div class="chatbot-meta-val">🟢 LOW → 🔴 CRITICAL</div>
+        </div>
+        <div class="chatbot-meta-item">
+          <div class="chatbot-meta-label">Smart Detection</div>
+          <div class="chatbot-meta-val">🔍 Duplicate + Dept Routing</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="page-header" style="padding-top:24px;">
+      <h2 id="how-title" data-cms-page="index" data-cms-key="howitworks.title">How It Works</h2>
+      <p id="how-sub" data-cms-page="index" data-cms-key="howitworks.subtitle">Three steps from report to resolution, powered by AI</p>
+    </div>
+    <div class="how-grid">
+      <div class="how-step">
+        <span class="how-step-num">01</span>
+        <span class="how-step-icon" data-cms-page="index" data-cms-key="step1.icon">📨</span>
+        <h3 id="how1-title" data-cms-page="index" data-cms-key="step1.title">Submit</h3>
+        <p id="how1-desc" data-cms-page="index" data-cms-key="step1.description">Describe the issue, pin your location on the interactive map, and optionally attach a photo.</p>
+      </div>
+      <div class="how-step">
+        <span class="how-step-num">02</span>
+        <span class="how-step-icon" data-cms-page="index" data-cms-key="step2.icon">🤖</span>
+        <h3 id="how2-title" data-cms-page="index" data-cms-key="step2.title">AI Processes</h3>
+        <p id="how2-desc" data-cms-page="index" data-cms-key="step2.description">Our AI extracts keywords, detects duplicates, scores risk, and routes to the correct department.</p>
+      </div>
+      <div class="how-step">
+        <span class="how-step-num">03</span>
+        <span class="how-step-icon" data-cms-page="index" data-cms-key="step3.icon">✅</span>
+        <h3 id="how3-title" data-cms-page="index" data-cms-key="step3.title">Get Resolved</h3>
+        <p id="how3-desc" data-cms-page="index" data-cms-key="step3.description">Track status in real time, receive email updates, and rate the resolution quality.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>&copy; 2026 <span class="f-accent" data-cms-page="global" data-cms-key="footer.brand">CivicCMS</span> — <span data-cms-page="global" data-cms-key="footer.tagline">AI-Powered Smart Civic Issue Detection and Resolution Platform</span></footer>
+
+<!-- ── Scripts ─────────────────────────────────────────────────── -->
+<script>
+/* Hamburger mobile toggle */
+(function(){
+  var btn = document.getElementById('fn-hamburger');
+  var nav = document.getElementById('civic-float-nav');
+  var menu = document.getElementById('fn-mobile-menu');
+  if(!btn) return;
+  btn.addEventListener('click', function(){
+    var open = menu.classList.toggle('open');
+    nav.classList.toggle('menu-open', open);
+    btn.innerHTML = open
+      ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>'
+      : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+  });
+  /* Close settings dropdown on outside click */
+  document.addEventListener('click', function(e){
+    var panel = document.getElementById('civic-settings-panel');
+    var gearBtn = document.getElementById('civic-gear-btn');
+    if(panel && !panel.contains(e.target) && e.target !== gearBtn){
+      panel.classList.remove('open');
+    }
+  });
+})();
+</script>
+
+<script src="/js/cms.js"></script>
+<script src="/js/lang.js"></script>
+<script src="/js/api.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    LangManager.injectSwitcher();
+    applyLang();
+    loadStats();
+  });
+
+  function applyLang() {
+    const L = LangManager.current();
+    LangManager.applyNav();
+    const h = L.hero, hm = L.home;
+    const set = (id,v) => { const e=document.getElementById(id); if(e) e.innerHTML=v; };
+    const setT = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+    const setPH = (id,v) => { const e=document.getElementById(id); if(e) e.placeholder=v; };
+    set('hero-eyebrow', h.eyebrow);
+    set('hero-h1', h.h1);
+    setT('hero-desc', h.desc);
+    set('hero-btn-submit', h.btnSubmit);
+    set('hero-btn-track', h.btnTrack);
+    setT('hf1', h.f1); setT('hf2', h.f2); setT('hf3', h.f3); setT('hf4', h.f4);
+    setT('track-title', hm.trackTitle);
+    setPH('quick-id', hm.trackPh);
+    setT('track-btn', hm.trackBtn);
+    setT('how-title', hm.howTitle);
+    setT('how-sub', hm.howSub);
+    setT('how1-title', hm.s1t); setT('how1-desc', hm.s1d);
+    setT('how2-title', hm.s2t); setT('how2-desc', hm.s2d);
+    setT('how3-title', hm.s3t); setT('how3-desc', hm.s3d);
+  }
+
+  async function loadStats() {
+    const L = LangManager.current().home;
+    try {
+      const data = await API.get('/api/v1/analytics/summary');
+      document.getElementById('stats-grid').innerHTML = `
+        <div class="kpi-card fade-in"><div class="kpi-value">${data.totalAll||0}</div><div class="kpi-label">${L.kpi1}</div></div>
+        <div class="kpi-card success fade-in" style="animation-delay:.06s"><div class="kpi-value">${data.totalToday||0}</div><div class="kpi-label">${L.kpi2}</div></div>
+        <div class="kpi-card warning fade-in" style="animation-delay:.12s"><div class="kpi-value">${data.escalated||0}</div><div class="kpi-label">${L.kpi3}</div></div>
+        <div class="kpi-card fade-in" style="animation-delay:.18s"><div class="kpi-value">${data.avgSatisfaction||'—'}</div><div class="kpi-label">${L.kpi4}</div></div>`;
+    } catch {
+      document.getElementById('stats-grid').innerHTML =
+        '<div class="kpi-card" style="grid-column:span 4;text-align:center;padding:24px;"><p style="color:#6b7280;">Stats unavailable</p></div>';
+    }
+  }
+
+  async function quickTrack() {
+    const id = document.getElementById('quick-id').value.trim();
+    const box = document.getElementById('quick-result');
+    if (!id) return;
+    box.style.display = 'block';
+    box.innerHTML = '<div class="alert alert-info">Loading…</div>';
+    try {
+      const d = await API.get('/api/v1/complaints/track/' + id);
+      box.innerHTML = `
+        <div class="alert alert-info" style="flex-direction:column;align-items:start;">
+          <strong class="mono">CMP-${d.id}: ${d.title}</strong><br>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+            Priority: ${priorityBadge(d.priority)} &nbsp; Status: ${statusBadge(d.status)}
+          </div>
+          <a href="/track.html?id=${d.id}" class="btn btn-sm btn-primary" style="margin-top:12px;">View Full Timeline →</a>
+        </div>`;
+    } catch {
+      box.innerHTML = '<div class="alert alert-error">Complaint not found.</div>';
+    }
+  }
+
+  function priorityBadge(p) {
+    const m = {HIGH:'badge-red',MEDIUM:'badge-yellow',LOW:'badge-green',CRITICAL:'badge-red'};
+    return `<span class="badge ${m[p]||'badge-blue'}">${p||'—'}</span>`;
+  }
+  function statusBadge(s) {
+    const m = {RESOLVED:'badge-green',IN_PROGRESS:'badge-blue',PENDING:'badge-yellow',ESCALATED:'badge-red'};
+    return `<span class="badge ${m[s]||'badge-blue'}">${(s||'').replace(/_/g,' ')}</span>`;
+  }
+
+  loadStats();
+</script>
+<script src="/js/animations.js"></script>
+</body>
+</html>

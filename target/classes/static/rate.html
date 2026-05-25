@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>/* Prevent flash of wrong theme */
+    (function(){var t=localStorage.getItem('civicTheme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Rate Resolution — CivicCMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand"><div class="brand-icon">C</div><span><span class="brand-accent">Civic</span>CMS</span></div>
+        <div class="navbar-links">
+    <a href="/index.html" id="nav-home">Home</a>
+    <a href="/chatbot.html" id="nav-chatbot">🤖 AI Chatbot</a>
+    <a href="/submit.html" id="nav-submit">Submit</a>
+    <a href="/track.html" id="nav-track">Track</a>
+    <a href="/history.html" id="nav-my">My Complaints</a>
+    <a href="/feedback.html" id="nav-feedback">⭐ Feedback &amp; Reviews</a>
+  </div>
+  <!-- Settings Gear -->
+    <div id="civic-settings-wrap" style="display:flex;align-items:center;gap:8px;">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="CivicTheme.toggle()" title="Toggle theme">🌙</button>
+    <button id="civic-gear-btn" onclick="LangManager.toggleSettings(event)" title="Settings">⚙️</button>
+    <div id="civic-settings-panel">
+      <div class="settings-section-title">🎨 Theme</div>
+      <button class="theme-option" id="theme-opt-light" onclick="CivicTheme.set('light');LangManager.toggleSettings(event)"><span>☀️</span><span>Light</span><span class="lang-check" id="tchk-light"></span></button>
+      <button class="theme-option" id="theme-opt-dark" onclick="CivicTheme.set('dark');LangManager.toggleSettings(event)"><span>🌙</span><span>Dark</span><span class="lang-check" id="tchk-dark"></span></button>
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">🌐 Language</div>
+      <button class="lang-option" id="langopt-en" onclick="LangManager.switchTo('en')"><span>🇬🇧</span><span>English</span><span class="lang-check" id="lcheck-en"></span></button>
+      <button class="lang-option" id="langopt-ta" onclick="LangManager.switchTo('ta')"><span>🇮🇳</span><span>தமிழ்</span><span class="lang-check" id="lcheck-ta"></span></button>
+      <button class="lang-option" id="langopt-hi" onclick="LangManager.switchTo('hi')"><span>🇮🇳</span><span>हिंदी</span><span class="lang-check" id="lcheck-hi"></span></button>
+      <div class="settings-divider"></div>
+      <button class="logout-option" onclick="LangManager.doLogout()"><span>🚪</span><span id="settings-logout-text">Logout</span></button>
+    </div>
+  </div>
+</nav>
+<div class="container-sm">
+  <div class="page-header">
+    <h2 id="pg-title">⭐ Rate the Resolution</h2>
+    <p id="pg-sub">Your feedback helps improve civic services for everyone.</p>
+  </div>
+  <div id="alert-box" class="alert alert-error" style="display:none;"></div>
+  <div id="complaint-info" class="card" style="display:none;"></div>
+  <div id="rating-form" class="card" style="display:none;">
+    <div class="card-title" id="rate-feedback-title">Your Feedback</div>
+    <div class="form-group"><label id="lbl-speed">Speed of Resolution</label><div class="star-row" id="stars-speed" data-key="speed"></div></div>
+    <div class="form-group"><label id="lbl-quality">Quality of Resolution</label><div class="star-row" id="stars-quality" data-key="quality"></div></div>
+    <div class="form-group"><label id="lbl-comm">Communication</label><div class="star-row" id="stars-comm" data-key="comm"></div></div>
+    <div class="form-group"><label id="lbl-comments">Comments <span id="lbl-comments-optional" style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim);">(optional)</span></label><textarea id="comments" class="form-control" rows="3" placeholder="Any additional feedback..."></textarea></div>
+    <button class="btn btn-primary btn-block" id="submit-rating" onclick="submitRating()">Submit Rating →</button>
+  </div>
+  <div id="already-rated" class="card" style="display:none;text-align:center;padding:48px 28px;">
+    <div style="font-size:2.8rem;margin-bottom:12px;">✅</div>
+    <h3 id="already-rated-title" style="font-family:var(--font-head);font-size:1.3rem;color:var(--green);margin-bottom:8px;">Already Rated</h3>
+    <p id="already-rated-msg" style="color:var(--text-muted);">You have already submitted a rating for this complaint. Thank you!</p>
+  </div>
+  <div id="success" class="card" style="display:none;text-align:center;padding:48px 28px;">
+    <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+    <h3 id="success-title" style="font-family:var(--font-head);font-size:1.3rem;color:var(--green);margin-bottom:8px;">Thank You!</h3>
+    <p id="success-msg" style="color:var(--text-muted);margin-bottom:20px;">Your feedback has been recorded and will help improve our services.</p>
+    <a href="/index.html" class="btn btn-primary" id="btn-back-home">Back to Home</a>
+  </div>
+</div>
+<footer>&copy; 2026 <span class="f-accent">CivicCMS</span></footer>
+<script src="/js/cms.js"></script>
+<script src="/js/lang.js"></script>
+<script src="/js/api.js"></script>
+<script>
+  const ratings = { speed:0, quality:0, comm:0 };
+  function buildStars(containerId) {
+    const c=document.getElementById(containerId), key=c.dataset.key;
+    c.innerHTML='';
+    for(let i=1;i<=5;i++){
+      const s=document.createElement('span'); s.className='star'; s.textContent='★'; s.dataset.val=i;
+      s.addEventListener('click',()=>{ ratings[key]=i; updateStars(containerId,i); });
+      s.addEventListener('mouseenter',()=>updateStars(containerId,i));
+      s.addEventListener('mouseleave',()=>updateStars(containerId,ratings[key]));
+      c.appendChild(s);
+    }
+  }
+  function updateStars(containerId,val){ document.querySelectorAll('#'+containerId+' .star').forEach((s,i)=>{ s.classList.toggle('selected',i<val); }); }
+  window.addEventListener('DOMContentLoaded', async () => {
+    LangManager.applyNav();
+    applyLang();
+    ['stars-speed','stars-quality','stars-comm'].forEach(buildStars);
+    const id=new URLSearchParams(window.location.search).get('id');
+    const RL = LangManager.current().rate;
+    if(!id) return showAlert('alert-box', RL.errNoId);
+    try {
+      const d=await API.get('/api/v1/complaints/track/'+id);
+      if(d.status!=='RESOLVED') return showAlert('alert-box', RL.errNotResolved);
+      document.getElementById('complaint-info').style.display='block';
+      document.getElementById('complaint-info').innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div><div style="font-family:var(--font-head);font-weight:700;color:var(--text);"><span class="mono" style="color:var(--indigo)">CMP-${d.id}</span>: ${d.title}</div>
+          <div style="font-size:.82rem;color:var(--text-muted);margin-top:4px;">${d.category} · ${d.assignedDeptName||''}</div></div>
+          ${statusBadge(d.status)}
+        </div>`;
+      document.getElementById('rating-form').style.display='block';
+    } catch(e){ if(e.status===404) showAlert('alert-box', LangManager.current().rate.errNotFound); else showAlert('alert-box', LangManager.current().rate.errLoad); }
+  });
+
+  function applyLang() {
+    const L = LangManager.current().rate;
+    const setT = (id, txt) => { const el=document.getElementById(id); if(el && txt) el.textContent=txt; };
+    setT('pg-title',   L.title);
+    setT('pg-sub',     L.sub);
+    setT('rate-feedback-title', L.yourFeedback);
+    setT('lbl-speed',  L.labelSpeed);
+    setT('lbl-quality',L.labelQuality);
+    setT('lbl-comm',   L.labelComm);
+    setT('lbl-comments',L.labelComments);
+    setT('lbl-comments-optional', L.commentsOptional);
+    setT('submit-rating', L.btnSubmit);
+    setT('btn-back-home', L.btnBack);
+    setT('already-rated-title', L.alreadyRatedTitle);
+    setT('already-rated-msg',   L.alreadyRatedMsg);
+    setT('success-title', L.successTitle);
+    setT('success-msg',   L.successMsg);
+    const commentsEl = document.getElementById('comments');
+    if(commentsEl) commentsEl.placeholder = L.commentsPh;
+  }
+
+  async function submitRating() {
+    const id=new URLSearchParams(window.location.search).get('id');
+    const RL = LangManager.current().rate;
+    if(!ratings.speed||!ratings.quality||!ratings.comm) return showAlert('alert-box', RL.errRateAll);
+    const btn=document.getElementById('submit-rating'); btn.disabled=true; btn.textContent=RL.btnSubmitting;
+    try {
+      await API.post('/api/v1/ratings/'+id,{ speedRating:ratings.speed, qualityRating:ratings.quality, communicationRating:ratings.comm, comments:document.getElementById('comments').value.trim() });
+      document.getElementById('rating-form').style.display='none';
+      document.getElementById('complaint-info').style.display='none';
+      document.getElementById('success').style.display='block';
+    } catch(e){
+      if(e.status===409){ document.getElementById('rating-form').style.display='none'; document.getElementById('already-rated').style.display='block'; }
+      else{ showAlert('alert-box',e.message||'Submission failed.'); btn.disabled=false; btn.textContent=RL.btnSubmit; }
+    }
+  }
+</script>
+<script src="/js/animations.js"></script>
+</body>
+</html>

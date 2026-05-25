@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Department Dashboard — CivicCMS</title>
+  <script src="/js/api.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0d0e17;--sidebar:#12131f;--surface:#191b2a;--surface2:#1f2135;--border:rgba(255,255,255,0.07);--text:#e4e2f0;--muted:#7a7996;--accent:#5b5ef6;--accent2:#818cf8;--green:#22c55e;--red:#ef4444;--orange:#f97316;--purple:#a855f7;--indigo:#5b5ef6;--sidebar-w:240px;--sidebar-col:60px;--radius:12px;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+    .db-layout{display:flex;min-height:100vh;}
+    .db-sidebar{width:var(--sidebar-w);background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;transition:width .28s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+    .db-sidebar.collapsed{width:var(--sidebar-col);}
+    .sb-brand{display:flex;align-items:center;gap:12px;padding:18px 16px 16px;border-bottom:1px solid var(--border);min-height:64px;text-decoration:none;}
+    .sb-brand-icon{width:36px;height:36px;flex-shrink:0;background:linear-gradient(135deg,#5b5ef6,#a78bfa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    .sb-brand-text{white-space:nowrap;overflow:hidden;}
+    .sb-brand-name{font-size:.95rem;font-weight:700;color:#fff;}
+    .sb-brand-sub{font-size:.7rem;color:var(--muted);margin-top:1px;}
+    .sb-user{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);}
+    .sb-avatar{width:36px;height:36px;flex-shrink:0;background:linear-gradient(135deg,#5b5ef6,#a78bfa);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:#fff;}
+    .sb-user-info{overflow:hidden;white-space:nowrap;flex:1;}
+    .sb-user-name{font-size:.85rem;font-weight:600;color:var(--text);}
+    .sb-user-plan{font-size:.7rem;color:var(--muted);}
+    .sb-toggle{position:absolute;top:50%;right:-14px;transform:translateY(-50%);width:28px;height:28px;background:var(--sidebar);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.75rem;color:var(--muted);transition:all .2s;z-index:210;}
+    .sb-toggle:hover{color:var(--text);border-color:var(--accent);}
+    .db-sidebar.collapsed .sb-toggle{transform:translateY(-50%) rotate(180deg);}
+    .sb-nav{flex:1;padding:10px 8px;overflow-y:auto;scrollbar-width:none;}
+    .sb-nav::-webkit-scrollbar{display:none;}
+    .sb-nav-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:8px 10px 4px;white-space:nowrap;overflow:hidden;transition:opacity .2s;}
+    .db-sidebar.collapsed .sb-nav-label{opacity:0;height:0;padding:0;}
+    .sb-link{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:var(--muted);text-decoration:none;font-size:.85rem;font-weight:500;transition:all .18s;white-space:nowrap;cursor:pointer;border:none;background:none;width:100%;text-align:left;margin-bottom:1px;}
+    .sb-link:hover{background:rgba(255,255,255,0.05);color:var(--text);}
+    .sb-link.active{background:rgba(91,94,246,0.15);color:var(--accent2);}
+    .sb-icon{width:20px;text-align:center;flex-shrink:0;font-size:1rem;}
+    .sb-label{flex:1;overflow:hidden;text-overflow:ellipsis;}
+    .db-sidebar.collapsed .sb-label,.db-sidebar.collapsed .sb-nav-label{display:none;}
+    .db-sidebar.collapsed .sb-link{justify-content:center;padding:10px 0;}
+    .db-main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin-left .28s cubic-bezier(.4,0,.2,1);}
+    .db-layout.collapsed .db-main{margin-left:var(--sidebar-col);}
+    .db-topbar{height:64px;background:var(--sidebar);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;}
+    .topbar-title{flex:1;font-size:1.2rem;font-weight:700;color:#ffffff;letter-spacing:-0.015em;}
+    .topbar-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(91,94,246,.2);border:1px solid rgba(91,94,246,.3);color:var(--accent2);font-size:.74rem;font-weight:700;padding:4px 11px;border-radius:20px;}
+    .topbar-btn{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:1rem;transition:all .2s;text-decoration:none;}
+    .topbar-btn:hover{border-color:var(--accent2);color:var(--text);}
+    .db-body{padding:28px 28px 48px;}
+    .db-header{margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;}
+    .db-header h1{font-size:1.7rem;font-weight:700;color:#ffffff;margin-bottom:4px;letter-spacing:-0.02em;}
+    .db-header p{font-size:.83rem;color:var(--muted);}
+    /* Stat cards */
+    .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;}
+    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 16px;}
+    .stat-val{font-size:1.9rem;font-weight:800;line-height:1;margin-bottom:4px;}
+    .stat-lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
+    /* DB banner */
+    .db-banner{display:none;padding:10px 16px;background:rgba(91,94,246,.12);border:1px solid rgba(91,94,246,.2);border-radius:var(--radius);font-size:.83rem;color:var(--accent2);margin-bottom:18px;}
+    /* Filter bar */
+    .filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+    .filter-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px;}
+    .filter-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+    .filter-select{background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:.83rem;padding:8px 12px;font-family:inherit;transition:border-color .2s;}
+    .filter-select:focus{outline:none;border-color:var(--accent);}
+    .filter-count{font-size:.8rem;color:var(--muted);padding-top:8px;width:100%;}
+    /* Table */
+    .db-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+    .tbl-scroll{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;font-size:.83rem;}
+    th{padding:10px 14px;text-align:left;border-bottom:2px solid var(--border);font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+    td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(91,94,246,.05);}
+    /* Badges */
+    .badge-status{display:inline-block;padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;text-transform:uppercase;}
+    .badge-SUBMITTED{background:rgba(148,163,184,.12);color:#94a3b8;}
+    .badge-ASSIGNED{background:rgba(59,130,246,.12);color:#60a5fa;}
+    .badge-IN_PROGRESS{background:rgba(234,179,8,.12);color:#facc15;}
+    .badge-RESOLVED{background:rgba(34,197,94,.12);color:#4ade80;}
+    .badge-ESCALATED{background:rgba(239,68,68,.12);color:#f87171;}
+    .badge-DUPLICATE{background:rgba(168,85,247,.12);color:#c084fc;}
+    .p-CRITICAL{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);display:inline-block;padding:2px 8px;border-radius:7px;font-size:.7rem;font-weight:700;}
+    .p-HIGH{background:rgba(249,115,22,.15);color:#fb923c;border:1px solid rgba(249,115,22,.3);display:inline-block;padding:2px 8px;border-radius:7px;font-size:.7rem;font-weight:700;}
+    .p-MEDIUM{background:rgba(234,179,8,.15);color:#facc15;border:1px solid rgba(234,179,8,.3);display:inline-block;padding:2px 8px;border-radius:7px;font-size:.7rem;font-weight:700;}
+    .p-LOW{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);display:inline-block;padding:2px 8px;border-radius:7px;font-size:.7rem;font-weight:700;}
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:.8rem;font-weight:600;border:none;cursor:pointer;transition:all .2s;font-family:inherit;}
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-primary:hover{background:var(--accent2);}
+    .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);}
+    .btn-outline:hover{border-color:var(--accent2);color:var(--accent2);}
+    .btn-sm{padding:5px 11px;font-size:.75rem;}
+    .btn-reset{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#f87171;}
+    .btn-reset:hover{background:rgba(239,68,68,.2);}
+    /* Modal */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+    .modal-bg.open{opacity:1;pointer-events:all;}
+    .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .2s;}
+    .modal-bg.open .modal-box{transform:translateY(0);}
+    .modal-title{font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:16px;}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+    .detail-item label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;}
+    .detail-item span{font-size:.88rem;font-weight:500;color:var(--text);}
+    .form-group{margin-bottom:13px;}
+    .form-label{font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;}
+    .form-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:.87rem;padding:9px 12px;font-family:inherit;transition:border-color .2s;}
+    .form-input:focus{outline:none;border-color:var(--accent);}
+    .alert-msg{display:none;padding:11px 14px;border-radius:9px;font-size:.83rem;margin-bottom:14px;}
+    .alert-error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);color:#f87171;display:block;}
+    @media(max-width:900px){.stats-grid{grid-template-columns:repeat(3,1fr);}}
+    @media(max-width:700px){.db-sidebar{width:var(--sidebar-col);}.db-main{margin-left:var(--sidebar-col);}.db-body{padding:18px 14px 40px;}.stats-grid{grid-template-columns:repeat(2,1fr);}}
+
+    /* ── Language Settings Panel ──────────────────────────────── */
+    .dept-lang-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .22s;
+    }
+    .dept-lang-overlay.open { opacity: 1; pointer-events: all; }
+
+    .dept-lang-panel {
+      background: var(--surface, #191b2a);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px;
+      width: min(460px, 100%);
+      box-shadow: 0 32px 80px rgba(0,0,0,.65);
+      overflow: hidden;
+      transform: translateY(18px) scale(.97);
+      transition: transform .24s cubic-bezier(.34,1.56,.64,1);
+    }
+    .dept-lang-overlay.open .dept-lang-panel {
+      transform: translateY(0) scale(1);
+    }
+
+    .dlp-head {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .dlp-head h2 { font-size: 1rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .dlp-head p  { font-size: .72rem; color: #6e6a8a; margin: 3px 0 0; }
+    .dlp-close {
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #9896b0; font-size: 13px;
+      transition: all .18s; flex-shrink: 0;
+    }
+    .dlp-close:hover { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.3); color: #f87171; }
+
+    .dlp-body { padding: 20px 22px 22px; }
+    .dlp-section-label {
+      font-size: .6rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: #6e6a8a; margin-bottom: 11px;
+    }
+
+    .dept-lang-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 15px; border-radius: 12px;
+      border: 1.5px solid rgba(255,255,255,.07);
+      cursor: pointer; transition: all .18s; margin-bottom: 9px;
+      background: transparent; user-select: none;
+    }
+    .dept-lang-card:last-child { margin-bottom: 0; }
+    .dept-lang-card:hover {
+      border-color: rgba(91,94,246,.5);
+      background: rgba(91,94,246,.07);
+    }
+    .dept-lang-card.dlc-active {
+      border-color: #5b5ef6;
+      background: rgba(91,94,246,.14);
+    }
+    .dlc-flag  { font-size: 22px; flex-shrink: 0; line-height: 1; }
+    .dlc-text  { flex: 1; min-width: 0; }
+    .dlc-name  { font-size: .88rem; font-weight: 700; color: #edeaf8; }
+    .dlc-sub   { font-size: .7rem; color: #6e6a8a; margin-top: 2px; }
+    .dlc-code  {
+      font-size: .65rem; font-family: monospace; font-weight: 700;
+      padding: 3px 7px; border-radius: 5px;
+      background: rgba(255,255,255,.06); color: #6e6a8a;
+      flex-shrink: 0;
+    }
+    .dept-lang-card.dlc-active .dlc-code { background: rgba(91,94,246,.2); color: #818cf8; }
+    .dlc-radio {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .18s; flex-shrink: 0;
+    }
+    .dept-lang-card.dlc-active .dlc-radio {
+      background: #5b5ef6; border-color: #5b5ef6;
+    }
+    .dept-lang-card.dlc-active .dlc-radio::after {
+      content: '✓'; font-size: 10px; font-weight: 800; color: #fff;
+    }
+
+    .dlp-active-bar {
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      background: rgba(91,94,246,.1);
+      border: 1px solid rgba(91,94,246,.22);
+      border-radius: 9px;
+      font-size: .79rem; color: #818cf8;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .dlp-footer {
+      display: flex; gap: 8px; margin-top: 18px;
+    }
+    .dlp-btn-done {
+      flex: 1; padding: 10px; border-radius: 9px;
+      background: var(--accent, #5b5ef6); color: #fff;
+      border: none; font-size: .84rem; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: all .18s;
+    }
+    .dlp-btn-done:hover { opacity: .88; }
+
+    /* Sidebar language button */
+    .sb-lang-trigger {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 9px;
+      color: var(--muted, #7a7996); font-size: .85rem; font-weight: 500;
+      cursor: pointer; border: none; background: none;
+      width: 100%; text-align: left; transition: all .18s;
+      white-space: nowrap; margin-bottom: 1px; font-family: inherit;
+    }
+    .sb-lang-trigger:hover { background: rgba(255,255,255,.05); color: var(--text); }
+
+    /* Lang toast */
+    .dept-lang-toast {
+      position: fixed; bottom: 26px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--surface, #191b2a);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 9px; color: #edeaf8;
+      font-size: .83rem; font-weight: 500;
+      padding: 10px 22px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.4);
+      opacity: 0; pointer-events: none;
+      transition: all .25s cubic-bezier(.2,.8,.2,1);
+      z-index: 99999; white-space: nowrap;
+    }
+    .dept-lang-toast.show {
+      opacity: 1; transform: translateX(-50%) translateY(0);
+    }
+  </style>
+  <link rel="stylesheet" href="/css/admin-shared.css">
+</head>
+<body>
+<div class="db-layout" id="db-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="db-sidebar" id="db-sidebar">
+    <a href="/index.html" class="sb-brand">
+      <div class="sb-brand-icon">🏛️</div>
+      <div class="sb-brand-text">
+        <div class="sb-brand-name">CivicCMS</div>
+        <div class="sb-brand-sub" id="sb-dept-sub">Dept Panel</div>
+      </div>
+    </a>
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">D</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name" id="sb-name">Loading…</div>
+        <div class="sb-user-plan" id="sb-plan">Department Head</div>
+      </div>
+    </div>
+    <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()">&#8249;</button>
+    <nav class="sb-nav">
+      <div class="sb-nav-label">MAIN</div>
+      <a href="/dept/dashboard.html" class="sb-link active"><span class="sb-icon">📊</span><span class="sb-label">Dashboard</span></a>
+      <div class="sb-nav-label" style="margin-top:10px;">ACCOUNT</div>
+      <button class="sb-lang-trigger" onclick="openLangPanel()" id="dept-lang-trigger">
+        <span class="sb-icon">🌐</span>
+        <span class="sb-label" id="dept-lang-label">Language</span>
+      </button>
+      <a href="/index.html" class="sb-link"><span class="sb-icon">🏠</span><span class="sb-label">View Site</span></a>
+      <button class="sb-link" onclick="logout()" style="color:#ef4444;"><span class="sb-icon">🚪</span><span class="sb-label">Sign Out</span></button>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="db-main">
+    <header class="db-topbar">
+      <span class="topbar-title" id="topbar-title">Department Dashboard</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="topbar-badge" id="topbar-badge" style="display:none;"></span>
+        <button class="topbar-btn" onclick="loadData()" title="Refresh">🔄</button>
+        <button class="topbar-btn" onclick="openLangPanel()" title="Language Settings" style="font-size:.75rem;font-weight:700;color:var(--accent2);">🌐</button>
+        <button class="topbar-btn" onclick="logout()" title="Logout">👤</button>
+      </div>
+    </header>
+
+    <div class="db-body">
+      <div class="db-header">
+        <div>
+          <h1 id="dash-title">Department Dashboard</h1>
+          <p id="dash-subtitle">Complaints assigned to your department</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadData()" data-dlang="refresh">🔄 Refresh</button>
+      </div>
+
+      <div class="db-banner" id="db-banner">🗄️ Showing from: <strong id="db-table-name"></strong></div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-val" id="s-total"    style="color:var(--accent2);">—</div><div class="stat-lbl">Total</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-pending"  style="color:var(--orange);">—</div><div class="stat-lbl">Pending</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-inprog"   style="color:#60a5fa;">—</div><div class="stat-lbl">In Progress</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-resolved" style="color:var(--green);">—</div><div class="stat-lbl">Resolved</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-critical" style="color:var(--red);">—</div><div class="stat-lbl">🚨 Critical</div></div>
+      </div>
+
+      <div class="alert-msg" id="alert-box"></div>
+
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label class="filter-label" data-dlang="filterStatus">Filter by Status</label>
+          <select id="f-status" class="filter-select" onchange="applyFilter()">
+            <option value="">All Statuses</option>
+            <option>SUBMITTED</option><option>ASSIGNED</option>
+            <option>IN_PROGRESS</option><option>RESOLVED</option><option>ESCALATED</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" data-dlang="filterPriority">Filter by Priority</label>
+          <select id="f-priority" class="filter-select" onchange="applyFilter()">
+            <option value="">All Priorities</option>
+            <option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option>
+          </select>
+        </div>
+        <button class="btn btn-reset btn-sm" onclick="resetFilter()">Reset</button>
+        <div class="filter-count" id="filter-count"></div>
+      </div>
+
+      <div class="db-card">
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>#CID</th><th data-dlang="colTitle">Title</th><th data-dlang="colCategory">Category</th><th data-dlang="colPriority">Priority</th><th data-dlang="colStatus">Status</th><th>Submitted By</th><th>Date</th><th>Action</th></tr></thead>
+            <tbody id="tbl-body"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted);">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Update Status Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Complaint Detail</div>
+    <div id="modal-body"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveStatus()">Save Changes</button>
+    </div>
+  </div>
+</div>
+  </div>
+
+  <!-- DB info banner -->
+  <div id="db-banner" class="alert" style="display:none;background:var(--indigo);color:#fff;border:none;margin-bottom:18px;font-size:.85rem;">
+    🗄️ Showing complaints from dedicated table: <strong id="db-table-name"></strong>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:22px;">
+    <div class="stat-card"><div class="stat-val" id="s-total"    style="color:var(--indigo);">—</div><div class="stat-lbl">Total</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-pending"  style="color:var(--amber);">—</div><div class="stat-lbl">Pending</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-inprog"   style="color:#3b82f6;">—</div><div class="stat-lbl">In Progress</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-resolved" style="color:var(--green);">—</div><div class="stat-lbl">Resolved</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-critical" style="color:var(--red);">—</div><div class="stat-lbl">🚨 Critical</div></div>
+  </div>
+
+  <div id="alert-box" class="alert alert-error" style="display:none;"></div>
+
+  <!-- Filter bar -->
+  <div class="card" style="padding:14px 18px;margin-bottom:16px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+        <label style="font-size:.78rem;">Filter by Status</label>
+        <select id="f-status" class="form-control" onchange="applyFilter()">
+          <option value="">All Statuses</option>
+          <option>SUBMITTED</option><option>ASSIGNED</option>
+          <option>IN_PROGRESS</option><option>RESOLVED</option><option>ESCALATED</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+        <label style="font-size:.78rem;">Filter by Priority</label>
+        <select id="f-priority" class="form-control" onchange="applyFilter()">
+          <option value="">All Priorities</option>
+          <option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option>
+        </select>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="resetFilter()">Reset</button>
+    </div>
+    <div id="filter-count" style="margin-top:8px;font-size:.82rem;color:var(--text-muted);"></div>
+  </div>
+
+  <!-- Table -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#CID</th><th>Title</th><th>Category</th><th>Priority</th>
+            <th>Status</th><th>Submitted By</th><th>Date</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body">
+          <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Update Status Modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target.id==='modal')closeModal()">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Complaint Detail</div>
+    <div id="modal-body"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveStatus()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Auth guard ──────────────────────────────────────────
+if (!API.isDeptHead()) window.location.href = '/dept/login.html';
+
+let allComplaints = [], currentComplaintId = null, currentDeptCode = '';
+
+// ── Sidebar ──────────────────────────────────────────────
+const _name = API.getName() || 'Dept Head';
+document.getElementById('sb-name').textContent   = _name;
+document.getElementById('sb-avatar').textContent = _name.charAt(0).toUpperCase();
+let collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+function applyCollapse(){
+  document.getElementById('db-layout').classList.toggle('collapsed',collapsed);
+  document.getElementById('db-sidebar').classList.toggle('collapsed',collapsed);
+}
+function toggleSidebar(){collapsed=!collapsed;localStorage.setItem('sidebarCollapsed',collapsed);applyCollapse();}
+applyCollapse();
+
+// ── Load data from dept-specific API ─────────────────────────────
+async function loadData() {
+  const status   = document.getElementById('f-status').value;
+  const priority = document.getElementById('f-priority').value;
+  const alertEl  = document.getElementById('alert-box');
+  alertEl.style.display = 'none'; alertEl.className='alert-msg';
+
+  setTableLoading();
+
+  try {
+    let url = '/api/v1/departments/my-complaints';
+    const params = [];
+    if (status)   params.push('status='   + encodeURIComponent(status));
+    if (priority) params.push('priority=' + encodeURIComponent(priority));
+    if (params.length) url += '?' + params.join('&');
+
+    const data = await API.get(url);
+
+    // Store dept info globally
+    currentDeptCode = data.deptCode || '';
+
+    // Update header
+    document.getElementById('dash-title').textContent = (data.deptName || 'Department') + ' Dashboard';
+    document.getElementById('topbar-title').textContent = (data.deptName || 'Dept') + ' Dashboard';
+    const badge = document.getElementById('topbar-badge');
+    badge.textContent = '🏢 ' + (data.deptName||'');
+    badge.style.display='inline-flex';
+    document.getElementById('sb-dept-sub').textContent = (data.deptName||'Dept') + ' Panel';
+    document.getElementById('sb-plan').textContent = (data.deptName||'Dept') + ' Head';
+    document.getElementById('dash-subtitle').textContent =
+      'Complaints stored in dept_complaints_' + (data.deptCode || '').toLowerCase() + ' database table';
+
+    // Show DB banner
+    const banner = document.getElementById('db-banner');
+    banner.style.display = 'block';
+    document.getElementById('db-table-name').textContent =
+      'dept_complaints_' + (data.deptCode || '').toLowerCase();
+
+    // Stats
+    const s = data.stats || {};
+    document.getElementById('s-total').textContent    = s.total    ?? data.total ?? 0;
+    document.getElementById('s-pending').textContent  = s.pending  ?? 0;
+    document.getElementById('s-inprog').textContent   = s.inProgress ?? 0;
+    document.getElementById('s-resolved').textContent = s.resolved ?? 0;
+    document.getElementById('s-critical').textContent = s.critical ?? 0;
+
+    // Table
+    allComplaints = data.content || [];
+    renderTable(allComplaints);
+
+    document.getElementById('filter-count').textContent =
+      allComplaints.length + ' complaint(s) found in your department database';
+
+  } catch(e) {
+    alertEl.textContent = '❌ ' + (e.message || 'Failed to load complaints');
+    alertEl.style.display = 'block';
+    document.getElementById('tbl-body').innerHTML =
+      '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--red);">Failed to load data.</td></tr>';
+  }
+}
+
+function applyFilter() { loadData(); }
+function resetFilter() {
+  document.getElementById('f-status').value = '';
+  document.getElementById('f-priority').value = '';
+  loadData();
+}
+
+function setTableLoading() {
+  document.getElementById('tbl-body').innerHTML =
+    '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">Loading from department database…</td></tr>';
+}
+
+// ── Render table ──────────────────────────────────────────────────
+function renderTable(list) {
+  const tbody = document.getElementById('tbl-body');
+  if (!list || list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">No complaints found in your department database.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(c => {
+    const cid      = c.complaint_id || c.id;
+    const priority = (c.priority || 'MEDIUM').toUpperCase();
+    const status   = (c.status   || 'SUBMITTED').toUpperCase();
+    const date     = c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '—';
+    const category = c.category  || '—';
+    const submitter= c.submitted_by_name || 'Anonymous';
+    const title    = escHtml(c.title || '');
+    return `<tr>
+      <td style="font-weight:700;color:var(--indigo);">#${cid}</td>
+      <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${title}">${title}</td>
+      <td><span style="font-size:.78rem;background:var(--bg);padding:2px 8px;border-radius:6px;">${category}</span></td>
+      <td><span class="badge-priority p-${priority}">${priority}</span></td>
+      <td><span class="badge-status badge-${status}">${status.replace('_',' ')}</span></td>
+      <td style="font-size:.83rem;">${escHtml(submitter)}</td>
+      <td style="font-size:.82rem;color:var(--text-muted);">${date}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="openModal(${cid})">View →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Detail + Update Modal ─────────────────────────────────────────
+function openModal(complaintId) {
+  const c = allComplaints.find(x => (x.complaint_id || x.id) == complaintId);
+  if (!c) return;
+  currentComplaintId = complaintId;
+
+  const priority = (c.priority || 'MEDIUM').toUpperCase();
+  const status   = (c.status   || 'SUBMITTED').toUpperCase();
+
+  document.getElementById('modal-title').textContent = 'Complaint #' + complaintId + ' — ' + (c.title || '');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item"><label>Category</label><span>${c.category || '—'}</span></div>
+      <div class="detail-item"><label>Priority</label><span class="p-${priority}">${priority}</span></div>
+      <div class="detail-item"><label>Current Status</label><span class="badge-status badge-${status}">${status.replace(/_/g,' ')}</span></div>
+      <div class="detail-item"><label>Submitted By</label><span>${escHtml(c.submitted_by_name || 'Anonymous')}</span></div>
+      <div class="detail-item" style="grid-column:1/-1;"><label>Address</label><span>${escHtml(c.address || '—')}</span></div>
+      <div class="detail-item" style="grid-column:1/-1;"><label>Description</label><span style="white-space:pre-wrap;">${escHtml(c.description || '')}</span></div>
+    </div>
+    ${c.photo_url ? `<div style="margin-bottom:14px;"><label class="form-label">PHOTO</label>
+      <img src="${c.photo_url}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);" alt="Complaint photo"></div>` : ''}
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:6px;">
+      <p style="font-size:.76rem;font-weight:700;margin:0 0 12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Update Status</p>
+      <div class="form-group">
+        <label class="form-label">New Status</label>
+        <select id="new-status" class="form-input">
+          <option ${status==='SUBMITTED'?'selected':''}>SUBMITTED</option>
+          <option ${status==='ASSIGNED'?'selected':''}>ASSIGNED</option>
+          <option ${status==='IN_PROGRESS'?'selected':''}>IN_PROGRESS</option>
+          <option ${status==='RESOLVED'?'selected':''}>RESOLVED</option>
+          <option ${status==='ESCALATED'?'selected':''}>ESCALATED</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Resolution Note</label>
+        <textarea id="res-note" class="form-input" rows="3" placeholder="Add resolution details…">${escHtml(c.resolution_note || '')}</textarea>
+      </div>
+    </div>`;
+
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  currentComplaintId = null;
+}
+document.getElementById('modal').addEventListener('click', e => { if(e.target.id==='modal') closeModal(); });
+
+async function saveStatus() {
+  if (!currentComplaintId) return;
+  const btn     = document.getElementById('save-btn');
+  const status  = document.getElementById('new-status').value;
+  const note    = document.getElementById('res-note').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    // PATCH to dept-specific endpoint → updates both dept table + master table
+    const result = await API.patch(
+      '/api/v1/departments/my-complaints/' + currentComplaintId + '/status',
+      { status, resolutionNote: note }
+    );
+
+    // Update local cache
+    const idx = allComplaints.findIndex(x => (x.complaint_id || x.id) == currentComplaintId);
+    if (idx !== -1) {
+      allComplaints[idx].status = status;
+      allComplaints[idx].resolution_note = note;
+      if (status === 'RESOLVED') allComplaints[idx].resolved_at = new Date().toISOString();
+    }
+
+    renderTable(allComplaints);
+    closeModal();
+    // Refresh stats
+    loadData();
+  } catch(e) {
+    alert('Error: ' + (e.message || 'Could not update status'));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+function logout() {
+  API.clearSession();
+  window.location.href = '/dept/login.html';
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────
+loadData();
+</script>
+
+<!-- ── Department Language Settings Panel ──────────────────── -->
+<div class="dept-lang-overlay" id="dept-lang-overlay" onclick="if(event.target===this)closeLangPanel()">
+  <div class="dept-lang-panel">
+    <div class="dlp-head">
+      <div>
+        <h2>🌐 Language Settings</h2>
+        <p>Select your preferred interface language · no logout required</p>
+      </div>
+      <button class="dlp-close" onclick="closeLangPanel()">✕</button>
+    </div>
+    <div class="dlp-body">
+
+      <div class="dlp-active-bar" id="dlp-active-bar">
+        <span style="font-size:1rem;" id="dlp-active-flag">🇬🇧</span>
+        <span id="dlp-active-text">English is active · saved to browser</span>
+      </div>
+
+      <div class="dlp-section-label">🌐 Choose Language / மொழி / भाषा</div>
+
+      <div class="dept-lang-card dlc-active" id="dlc-en" onclick="selectDeptLang('en')">
+        <div class="dlc-flag">🇬🇧</div>
+        <div class="dlc-text">
+          <div class="dlc-name">English</div>
+          <div class="dlc-sub">Default · International</div>
+        </div>
+        <span class="dlc-code">en-US</span>
+        <div class="dlc-radio" id="dlr-en"></div>
+      </div>
+
+      <div class="dept-lang-card" id="dlc-ta" onclick="selectDeptLang('ta')">
+        <div class="dlc-flag">🇮🇳</div>
+        <div class="dlc-text">
+          <div class="dlc-name">Tamil — தமிழ்</div>
+          <div class="dlc-sub">தமிழ்நாடு · Tamil Nadu, India</div>
+        </div>
+        <span class="dlc-code">ta-IN</span>
+        <div class="dlc-radio" id="dlr-ta"></div>
+      </div>
+
+      <div class="dept-lang-card" id="dlc-hi" onclick="selectDeptLang('hi')">
+        <div class="dlc-flag">🇮🇳</div>
+        <div class="dlc-text">
+          <div class="dlc-name">Hindi — हिंदी</div>
+          <div class="dlc-sub">भारत · National language of India</div>
+        </div>
+        <span class="dlc-code">hi-IN</span>
+        <div class="dlc-radio" id="dlr-hi"></div>
+      </div>
+
+      <div class="dlp-footer">
+        <button class="dlp-btn-done" onclick="closeLangPanel()">✓ Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="dept-lang-toast" id="dept-lang-toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   DEPARTMENT DASHBOARD — Language Manager
+   No reload · No logout · localStorage persistence
+   Language codes: en-US / ta-IN / hi-IN
+════════════════════════════════════════════════════════════ */
+const DeptLang = (() => {
+  const KEY = 'dept-lang';
+
+  const LANGS = {
+    en: {
+      flag: '🇬🇧', name: 'English',  native: 'English', code: 'en-US',
+      ui: {
+        dashTitle:    'Department Dashboard',
+        dashSub:      'Complaints assigned to your department',
+        refresh:      '🔄 Refresh',
+        filterStatus: 'Filter by Status',
+        filterPriority:'Filter by Priority',
+        allStatuses:  'All Statuses',
+        allPriorities:'All Priorities',
+        applyFilter:  '🔍 Apply Filter',
+        resetFilter:  '↺ Reset',
+        langLabel:    '🌐 Language',
+        navDash:      'Dashboard',
+        navSite:      'View Site',
+        navSignOut:   'Sign Out',
+        colId:        'ID', colTitle: 'Title', colCategory: 'Category',
+        colPriority:  'Priority', colStatus: 'Status',
+        colSubmitted: 'Submitted', colActions: 'Actions',
+        loading:      'Loading complaints…',
+        noComplaints: 'No complaints found for your department.',
+      }
+    },
+    ta: {
+      flag: '🇮🇳', name: 'Tamil', native: 'தமிழ்', code: 'ta-IN',
+      ui: {
+        dashTitle:    'துறை டாஷ்போர்டு',
+        dashSub:      'உங்கள் துறைக்கு ஒதுக்கப்பட்ட புகார்கள்',
+        refresh:      '🔄 புதுப்பி',
+        filterStatus: 'நிலை வடிகட்டு',
+        filterPriority:'முன்னுரிமை வடிகட்டு',
+        allStatuses:  'அனைத்து நிலைகளும்',
+        allPriorities:'அனைத்து முன்னுரிமைகளும்',
+        applyFilter:  '🔍 வடிகட்டு',
+        resetFilter:  '↺ மீட்டமை',
+        langLabel:    '🌐 மொழி',
+        navDash:      'டாஷ்போர்டு',
+        navSite:      'தளம் பார்க்க',
+        navSignOut:   'வெளியேறு',
+        colId:        'அடையாளம்', colTitle: 'தலைப்பு', colCategory: 'வகை',
+        colPriority:  'முன்னுரிமை', colStatus: 'நிலை',
+        colSubmitted: 'சமர்பித்த நேரம்', colActions: 'செயல்கள்',
+        loading:      'புகார்கள் ஏற்றுகிறது…',
+        noComplaints: 'உங்கள் துறைக்கு புகார்கள் இல்லை.',
+      }
+    },
+    hi: {
+      flag: '🇮🇳', name: 'Hindi', native: 'हिंदी', code: 'hi-IN',
+      ui: {
+        dashTitle:    'विभाग डैशबोर्ड',
+        dashSub:      'आपके विभाग को सौंपी गई शिकायतें',
+        refresh:      '🔄 रिफ्रेश',
+        filterStatus: 'स्थिति फ़िल्टर',
+        filterPriority:'प्राथमिकता फ़िल्टर',
+        allStatuses:  'सभी स्थितियां',
+        allPriorities:'सभी प्राथमिकताएं',
+        applyFilter:  '🔍 फ़िल्टर',
+        resetFilter:  '↺ रीसेट',
+        langLabel:    '🌐 भाषा',
+        navDash:      'डैशबोर्ड',
+        navSite:      'साइट देखें',
+        navSignOut:   'साइन आउट',
+        colId:        'आईडी', colTitle: 'शीर्षक', colCategory: 'श्रेणी',
+        colPriority:  'प्राथमिकता', colStatus: 'स्थिति',
+        colSubmitted: 'सबमिट किया', colActions: 'कार्रवाई',
+        loading:      'शिकायतें लोड हो रही हैं…',
+        noComplaints: 'आपके विभाग में कोई शिकायत नहीं मिली।',
+      }
+    },
+  };
+
+  function getCode() { return localStorage.getItem(KEY) || 'en'; }
+  function get()     { return LANGS[getCode()] || LANGS.en; }
+
+  function set(code) {
+    if (!LANGS[code]) return;
+    localStorage.setItem(KEY, code);
+    document.documentElement.lang = LANGS[code].code;
+    applyUI();
+    return LANGS[code];
+  }
+
+  // Apply all data-dlang attributes in DOM
+  function applyUI() {
+    const lang = get();
+    const ui   = lang.ui;
+    // data-dlang="key" → textContent
+    document.querySelectorAll('[data-dlang]').forEach(el => {
+      const key = el.getAttribute('data-dlang');
+      if (ui[key] !== undefined) el.textContent = ui[key];
+    });
+    // data-dlang-ph="key" → placeholder
+    document.querySelectorAll('[data-dlang-ph]').forEach(el => {
+      const key = el.getAttribute('data-dlang-ph');
+      if (ui[key] !== undefined) el.placeholder = ui[key];
+    });
+  }
+
+  // On first load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyUI);
+  } else {
+    applyUI();
+  }
+
+  return { get, getCode, set, applyUI, LANGS };
+})();
+
+/* ── Panel open/close ─────────────────────────────── */
+function openLangPanel() {
+  document.getElementById('dept-lang-overlay').classList.add('open');
+  refreshLangPanel();
+}
+function closeLangPanel() {
+  document.getElementById('dept-lang-overlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLangPanel(); });
+
+function refreshLangPanel() {
+  const cur  = DeptLang.getCode();
+  const lang = DeptLang.get();
+
+  // Language cards
+  ['en','ta','hi'].forEach(code => {
+    document.getElementById('dlc-' + code)?.classList.toggle('dlc-active', code === cur);
+  });
+
+  // Active bar
+  document.getElementById('dlp-active-flag').textContent = lang.flag;
+  document.getElementById('dlp-active-text').textContent =
+    `${lang.name} (${lang.native}) is active · saved to browser`;
+
+  // Sidebar label
+  const lbl = document.getElementById('dept-lang-label');
+  if (lbl) lbl.textContent = lang.flag + ' ' + lang.native;
+}
+
+/* ── Language selection — NO reload, NO logout ─────── */
+function selectDeptLang(code) {
+  DeptLang.set(code);
+  refreshLangPanel();
+  const lang = DeptLang.LANGS[code];
+  showDeptToast(`${lang.flag} Language: ${lang.name} (${lang.native})`);
+}
+
+/* ── Toast ─────────────────────────────────────────── */
+let _deptToastTimer;
+function showDeptToast(msg) {
+  const el = document.getElementById('dept-lang-toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_deptToastTimer);
+  _deptToastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* ── Init lang UI on load ─────────────────────────── */
+(function initDeptLang() {
+  const lang = DeptLang.get();
+  const lbl  = document.getElementById('dept-lang-label');
+  if (lbl) lbl.textContent = lang.flag + ' ' + lang.native;
+  document.documentElement.lang = lang.code;
+  DeptLang.applyUI();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Complaints — CivicCMS Admin</title>
+  <script src="/js/api.js"></script>
+  <script src="/js/admin-lang.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin-shared.css">
+  <style>
+    /* Complaint-ID style: CMP-21 in blue, stacked on two lines like screenshot */
+    .cmp-id{color:var(--accent2);font-weight:700;font-size:.78rem;font-family:monospace;white-space:pre-line;line-height:1.3;}
+    .cmp-title{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:var(--text);}
+    .cat-text{color:var(--muted);font-size:.76rem;font-weight:600;letter-spacing:.04em;}
+    .submitter{font-weight:600;color:var(--text);}
+    .dept-link{color:var(--accent2);font-weight:600;font-size:.82rem;}
+    .date-cell{font-size:.76rem;color:var(--muted);white-space:nowrap;}
+
+    /* ═══════════════════════════════════════
+       LANGUAGE PANEL — Guaranteed visible
+    ═══════════════════════════════════════ */
+    #lang-overlay{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,0.72);
+      backdrop-filter:blur(6px);
+      z-index:99999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      visibility:hidden;
+      opacity:0;
+      transition:opacity .22s, visibility .22s;
+    }
+    #lang-overlay.lp-open{
+      visibility:visible;
+      opacity:1;
+    }
+    #lang-panel{
+      background:#161827;
+      border:1px solid rgba(255,255,255,0.11);
+      border-radius:20px;
+      width:min(480px,100%);
+      box-shadow:0 32px 80px rgba(0,0,0,0.65);
+      overflow:hidden;
+      transform:translateY(18px) scale(0.97);
+      transition:transform .24s cubic-bezier(.34,1.56,.64,1);
+    }
+    #lang-overlay.lp-open #lang-panel{
+      transform:translateY(0) scale(1);
+    }
+
+    /* Panel Header */
+    .lp-head{
+      padding:20px 24px 16px;
+      border-bottom:1px solid rgba(255,255,255,0.07);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .lp-head-left h2{font-size:1rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;margin:0;}
+    .lp-head-left p{font-size:.72rem;color:#6e6a8a;margin:3px 0 0;}
+    .lp-x{
+      width:30px;height:30px;flex-shrink:0;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.09);
+      border-radius:8px;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;color:#9896b0;font-size:13px;
+      transition:all .18s;
+    }
+    .lp-x:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#f87171;}
+
+    /* Panel body */
+    .lp-body{padding:22px 24px 24px;}
+
+    .lp-label{
+      font-size:.61rem;font-weight:800;
+      text-transform:uppercase;letter-spacing:.1em;
+      color:#6e6a8a;margin-bottom:12px;
+    }
+
+    /* Language option card */
+    .lang-card{
+      display:flex;align-items:center;gap:14px;
+      padding:13px 16px;border-radius:13px;
+      border:1.5px solid rgba(255,255,255,0.07);
+      cursor:pointer;transition:all .18s;
+      margin-bottom:9px;background:transparent;
+      -webkit-user-select:none;user-select:none;
+    }
+    .lang-card:last-child{margin-bottom:0;}
+    .lang-card:hover{border-color:rgba(91,94,246,0.5);background:rgba(91,94,246,0.07);}
+    .lang-card.lc-active{
+      border-color:#5b5ef6;
+      background:rgba(91,94,246,0.14);
+    }
+    .lang-card-flag{font-size:24px;flex-shrink:0;line-height:1;}
+    .lang-card-text{flex:1;min-width:0;}
+    .lang-card-name{font-size:.9rem;font-weight:700;color:#edeaf8;}
+    .lang-card-sub{font-size:.72rem;color:#6e6a8a;margin-top:2px;}
+    .lang-card-radio{
+      width:20px;height:20px;flex-shrink:0;
+      border-radius:50%;
+      border:2px solid rgba(255,255,255,0.18);
+      display:flex;align-items:center;justify-content:center;
+      transition:all .18s;
+      font-size:10px;
+    }
+    .lang-card.lc-active .lang-card-radio{
+      background:#5b5ef6;
+      border-color:#5b5ef6;
+      color:#fff;
+    }
+    .lang-card.lc-active .lang-card-radio::after{
+      content:'✓';font-size:11px;font-weight:800;color:#fff;
+    }
+
+    /* Divider */
+    .lp-divider{
+      border:none;border-top:1px solid rgba(255,255,255,0.06);
+      margin:18px 0;
+    }
+
+    /* Theme pills */
+    .lp-theme-row{display:flex;gap:8px;}
+    .lp-theme-pill{
+      flex:1;padding:10px 8px;border-radius:10px;
+      border:1.5px solid rgba(255,255,255,0.07);
+      background:transparent;cursor:pointer;
+      color:#9896b0;font-size:.8rem;font-weight:600;
+      font-family:inherit;
+      display:flex;align-items:center;justify-content:center;gap:5px;
+      transition:all .18s;
+    }
+    .lp-theme-pill:hover{border-color:rgba(91,94,246,.4);color:#c4bfe0;}
+    .lp-theme-pill.ltp-active{
+      border-color:#5b5ef6;
+      background:rgba(91,94,246,0.15);
+      color:#818cf8;
+    }
+
+    /* Footer */
+    .lp-footer{display:flex;gap:9px;margin-top:20px;}
+    .lp-btn-done:hover{border-color:rgba(255,255,255,.18);color:var(--text);}
+
+    /* Sidebar language btn — always visible */
+
+
+    /* Toast notification */
+    .lp-toast{
+      position:fixed;bottom:28px;left:50%;
+      transform:translateX(-50%) translateY(0);
+      background:#1d2035;
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:10px;color:#edeaf8;
+      font-size:.84rem;font-weight:500;
+      padding:11px 24px;
+      z-index:999999;
+      white-space:nowrap;
+      box-shadow:0 8px 32px rgba(0,0,0,0.4);
+      animation:toastIn .25s ease;
+      pointer-events:none;
+    }
+    @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+  </style>
+</head>
+<body>
+<div class="db-layout" id="db-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="db-sidebar" id="db-sidebar">
+    <a href="/admin/dashboard.html" class="sb-brand">
+      <div class="sb-brand-icon">🏛️</div>
+      <div class="sb-brand-text">
+        <div class="sb-brand-name">CivicCMS</div>
+        <div class="sb-brand-sub">Admin Panel</div>
+      </div>
+    </a>
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">A</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name" id="sb-name">Admin</div>
+        <div class="sb-user-plan">Admin Account</div>
+      </div>
+    </div>
+    <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()">‹</button>
+    <nav class="sb-nav">
+      <div class="sb-nav-label">MAIN</div>
+      <a href="/admin/dashboard.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Dashboard</span></a>
+      <a href="/admin/complaints.html" class="sb-link active"><span class="sb-icon">📋</span><span class="sb-label">Complaints</span><span class="sb-badge red" id="sb-crit-badge" style="display:none;">!</span></a>
+      <a href="/admin/dept-heads.html" class="sb-link"><span class="sb-icon">🏢</span><span class="sb-label">Dept Heads</span></a>
+      <a href="/admin/alerts.html" class="sb-link"><span class="sb-icon">🚨</span><span class="sb-label">Alerts</span></a>
+      <a href="/admin/heatmap.html" class="sb-link"><span class="sb-icon">🗺️</span><span class="sb-label">Heatmap</span></a>
+      <a href="/admin/content-editor.html" class="sb-link"><span class="sb-icon">✏️</span><span class="sb-label">Content Editor</span></a>
+      <div class="sb-nav-label" style="margin-top:8px;">TOOLS</div>
+      <a href="/index.html" class="sb-link"><span class="sb-icon">🌐</span><span class="sb-label">View Site</span></a>
+      <div class="sb-nav-label" style="margin-top:8px;" data-i18n="nav.account">ACCOUNT</div>
+    </nav>
+    <div class="sb-footer">
+      <button class="sb-link" onclick="logout()" style="color:#f87171;width:100%;"><span class="sb-icon">🚪</span><span class="sb-label">Sign Out</span></button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="db-main">
+    <header class="db-topbar">
+      <span class="topbar-title">Complaint Management</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="topbar-btn" onclick="loadComplaints()" title="Refresh">🔄</button>
+        <button class="topbar-btn" onclick="logout()" title="Sign Out">👤</button>
+      </div>
+    </header>
+
+    <div class="db-body">
+      <div class="db-header">
+        <h1>Complaint Management</h1>
+        <p>View, filter by department, assign departments and update complaints</p>
+      </div>
+
+      <div id="flash" class="flash"></div>
+
+      <!-- Filter Card — matches screenshot exactly -->
+      <div class="filter-card">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label class="filter-label">Filter by Status</label>
+            <select id="f-status" class="filter-select">
+              <option value="">All Statuses</option>
+              <option value="OPEN">Open</option>
+              <option value="ASSIGNED">Assigned</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="ESCALATED">Escalated</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Filter by Department</label>
+            <select id="f-dept" class="filter-select">
+              <option value="">All Departments</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Filter by Priority</label>
+            <select id="f-priority" class="filter-select">
+              <option value="">All Priorities</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Filter by Category</label>
+            <select id="f-category" class="filter-select">
+              <option value="">All Categories</option>
+              <option value="WATER">💧 Water</option>
+              <option value="ELECTRICITY">⚡ Electricity</option>
+              <option value="ROADS">🛣️ Roads</option>
+              <option value="GARBAGE">🗑️ Garbage</option>
+              <option value="DRAINAGE">🌊 Drainage</option>
+              <option value="STREETLIGHT">💡 Streetlight</option>
+              <option value="PARKS">🌳 Parks</option>
+              <option value="NOISE">📢 Noise</option>
+              <option value="BUILDING">🏗️ Building</option>
+              <option value="OTHER">📋 Other</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary" onclick="loadComplaints()">● Filter</button>
+            <button class="btn btn-ghost" onclick="resetFilters()">Reset</button>
+            <button class="btn btn-csv" onclick="exportCSV()">📥 CSV</button>
+          </div>
+        </div>
+        <div class="filter-summary" id="filter-summary">Showing <strong>0</strong> complaint(s)</div>
+      </div>
+
+      <!-- Table card -->
+      <div class="db-card">
+        <div class="tbl-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Submitted By</th>
+                <th>Department</th>
+                <th>Submitted</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-body">
+              <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">Loading complaints…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View/Update Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Complaint Details</div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save" onclick="saveStatus()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Dept Modal -->
+<div class="modal-overlay" id="assign-modal">
+  <div class="modal-box">
+    <div class="modal-title">🏢 Assign Department</div>
+    <p style="font-size:.83rem;color:var(--muted);margin-bottom:16px;" id="assign-current"></p>
+    <div class="form-group-m">
+      <label class="form-label-m">Select Department</label>
+      <select id="assign-dept-select" class="form-ctrl"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAssignModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmAssign()">Assign →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  if (!API.isAdmin()) window.location.href = '/admin/login.html';
+  function logout() { API.clearSession(); window.location.href = '/admin/login.html'; }
+
+  const adminName = API.getName() || 'Admin';
+  document.getElementById('sb-name').textContent   = adminName;
+  document.getElementById('sb-avatar').textContent = adminName.charAt(0).toUpperCase();
+
+  let sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+  function applyCollapse() {
+    document.getElementById('db-layout').classList.toggle('collapsed', sidebarCollapsed);
+    document.getElementById('db-sidebar').classList.toggle('collapsed', sidebarCollapsed);
+  }
+  applyCollapse();
+  function toggleSidebar() { sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed); applyCollapse(); }
+
+  let currentPage = 0, currentComplaintId = null, assignComplaintId = null;
+  let allDepts = [];
+
+  async function boot() {
+    await loadDepts();
+    const stored = sessionStorage.getItem('deptFilter');
+    if (stored) { document.getElementById('f-dept').value = stored; sessionStorage.removeItem('deptFilter'); }
+
+    // Live filter on change — instant response
+    ['f-status','f-dept','f-priority','f-category'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', () => loadComplaints(0));
+    });
+
+    await loadComplaints();
+  }
+
+  async function loadDepts() {
+    try {
+      allDepts = await API.get('/api/v1/departments');
+      const sel = document.getElementById('f-dept');
+      allDepts.forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
+    } catch(e) {}
+  }
+
+  // Internal: fetch a single page from the complaints API
+  async function fetchPage(page, status, deptId) {
+    if (deptId) {
+      let url = `/api/v1/complaints/by-dept/${deptId}`;
+      if (status) url += '?status=' + status;
+      const data = await API.get(url);
+      return { rows: data.content || data || [], totalPages: 1 };
+    } else {
+      let url = `/api/v1/complaints?page=${page}&size=50`;
+      if (status) url += '&status=' + status;
+      const data = await API.get(url);
+      return { rows: data.content || [], totalPages: data.totalPages || 1 };
+    }
+  }
+
+  async function loadComplaints(page = 0) {
+    currentPage = page;
+    const status   = document.getElementById('f-status').value;
+    const deptId   = document.getElementById('f-dept').value;
+    const priority = document.getElementById('f-priority').value;
+    const category = document.getElementById('f-category').value;
+
+    // Show loading state
+    document.getElementById('tbl-body').innerHTML =
+      '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">Loading complaints…</td></tr>';
+
+    try {
+      let rows = [];
+      let totalPages = 1;
+
+      if (category || priority) {
+        // Need full dataset for client-side filtering — fetch all pages
+        const first = await fetchPage(0, status, deptId);
+        rows = first.rows;
+        totalPages = first.totalPages;
+
+        // Fetch remaining pages if needed
+        if (totalPages > 1) {
+          const remaining = [];
+          for (let p = 1; p < Math.min(totalPages, 20); p++) {
+            remaining.push(fetchPage(p, status, deptId));
+          }
+          const pages = await Promise.all(remaining);
+          pages.forEach(pg => rows = rows.concat(pg.rows));
+        }
+
+        // Apply client-side filters
+        if (priority) rows = rows.filter(c => (c.priority || '').toUpperCase() === priority.toUpperCase());
+        if (category) rows = rows.filter(c => (c.category || '').toUpperCase() === category.toUpperCase());
+
+        // Paginate the filtered result ourselves
+        const PAGE_SIZE = 15;
+        const filteredTotal = Math.ceil(rows.length / PAGE_SIZE) || 1;
+        const safePage = Math.min(page, filteredTotal - 1);
+        currentPage = safePage;
+        const slice = rows.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+        renderTable(slice);
+        renderPagination(filteredTotal, safePage, true, rows);
+        updateSummary(rows.length, deptId, status, priority, category);
+
+      } else {
+        // No client-side filter — simple paged fetch
+        const result = await fetchPage(page, status, deptId);
+        rows = result.rows;
+        totalPages = result.totalPages;
+        renderTable(rows);
+        renderPagination(totalPages, page, false, []);
+        updateSummary(rows.length, deptId, status, priority, category);
+      }
+
+    } catch(e) {
+      flash('Failed to load complaints: ' + (e.message || 'Unknown error'), false);
+      document.getElementById('tbl-body').innerHTML =
+        '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">Error loading complaints. Check console.</td></tr>';
+    }
+  }
+
+  // Store all filtered rows for pagination across pages
+  let _filteredRows = [];
+
+  function renderPagination(total, current, clientPaged = false, allRows = []) {
+    _filteredRows = allRows;
+    const div = document.getElementById('pagination');
+    if (total <= 1) { div.innerHTML = ''; return; }
+    let html = '';
+    for (let i = 0; i < total; i++) {
+      if (clientPaged) {
+        html += `<button class="pg-btn ${i===current?'active':''}" onclick="gotoClientPage(${i})">${i+1}</button>`;
+      } else {
+        html += `<button class="pg-btn ${i===current?'active':''}" onclick="loadComplaints(${i})">${i+1}</button>`;
+      }
+    }
+    div.innerHTML = html;
+  }
+
+  function gotoClientPage(page) {
+    currentPage = page;
+    const PAGE_SIZE = 15;
+    const slice = _filteredRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    renderTable(slice);
+    // Update active page button
+    document.querySelectorAll('.pg-btn').forEach((btn, i) => btn.classList.toggle('active', i === page));
+  }
+
+  function updateSummary(count, deptId, status, priority, category) {
+    const parts = [];
+    if (deptId)   { const d = allDepts.find(x=>x.id==deptId); if(d) parts.push('Dept: <strong>'+d.name+'</strong>'); }
+    if (status)   parts.push('Status: <strong>'+status+'</strong>');
+    if (priority) parts.push('Priority: <strong>'+priority+'</strong>');
+    if (category) parts.push('Category: <strong>'+category+'</strong>');
+    document.getElementById('filter-summary').innerHTML = `Showing <strong>${count}</strong> complaint(s)${parts.length?' · '+parts.join(' · '):''}`;
+  }
+
+  function renderTable(complaints) {
+    const tbody = document.getElementById('tbl-body');
+    if (!complaints.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:44px;color:var(--muted);">No complaints found</td></tr>'; return; }
+    tbody.innerHTML = complaints.map(c => `
+      <tr>
+        <td><span class="cmp-id">CMP-\n${c.id}</span></td>
+        <td><span class="cmp-title" title="${esc(c.title)}">${esc(c.title)}</span></td>
+        <td><span class="cat-text">${c.category}</span></td>
+        <td>${pBadge(c.priority)}</td>
+        <td>${sBadge(c.status)}</td>
+        <td class="submitter">${esc(c.submittedByName||'Anon')}</td>
+        <td>${c.assignedDeptName?`<span class="dept-link">${esc(c.assignedDeptName)}</span>`:'<span style="color:var(--red);font-size:.76rem;font-style:italic;">Unassigned</span>'}</td>
+        <td class="date-cell">${fmtDate(c.createdAt)}</td>
+        <td><div style="display:flex;gap:5px;align-items:center;">
+          <button class="act-btn" onclick="openModal(${c.id})">View</button>
+          <button class="act-btn assign" onclick="openAssignModal(${c.id},'${esc(c.assignedDeptName||'')}')" title="Assign Dept">🏢</button>
+        </div></td>
+      </tr>`).join('');
+  }
+
+
+
+  async function openModal(id) {
+    currentComplaintId = id;
+    try {
+      const c = await API.get('/api/v1/complaints/'+id);
+      document.getElementById('modal-title').textContent = `CMP-${c.id}: ${c.title}`;
+      document.getElementById('modal-body').innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-item"><label>Submitted By</label><span style="font-weight:700;">${esc(c.submittedByName||'Anonymous')}</span></div>
+          <div class="detail-item"><label>Category</label><span>${c.category}</span></div>
+          <div class="detail-item"><label>Priority</label><span>${pBadge(c.priority)}</span></div>
+          <div class="detail-item"><label>Status</label><span>${sBadge(c.status)}</span></div>
+          <div class="detail-item"><label>Department</label><span style="color:var(--accent2);font-weight:600;">${esc(c.assignedDeptName||'Unassigned')}</span></div>
+          <div class="detail-item"><label>Submitted</label><span style="font-size:.76rem;font-family:monospace;">${fmtDate(c.createdAt)}</span></div>
+        </div>
+        <div class="desc-box">${esc(c.description||'—')}</div>
+        ${c.photoUrl?`<div style="margin-bottom:14px;"><img src="${c.photoUrl}" style="max-height:170px;border-radius:10px;border:1px solid var(--border);"></div>`:''}
+        <div class="form-group-m"><label class="form-label-m">Update Status</label>
+          <select id="new-status" class="form-ctrl">
+            <option value="">— Keep current (${c.status}) —</option>
+            <option value="ASSIGNED">ASSIGNED</option><option value="IN_PROGRESS">IN PROGRESS</option>
+            <option value="RESOLVED">RESOLVED</option><option value="ESCALATED">ESCALATED</option>
+          </select>
+        </div>
+        <div class="form-group-m"><label class="form-label-m">Resolution Note</label>
+          <textarea id="resolution-note" class="form-ctrl" rows="3" placeholder="Add a note (required for RESOLVED)">${esc(c.resolutionNote||'')}</textarea>
+        </div>`;
+      document.getElementById('modal').classList.add('open');
+    } catch(e) { flash('Could not load complaint: '+e.message, false); }
+  }
+
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  document.getElementById('modal').addEventListener('click', e => { if(e.target.id==='modal') closeModal(); });
+
+  async function saveStatus() {
+    const status = document.getElementById('new-status').value;
+    const note   = document.getElementById('resolution-note').value;
+    if (!status) return alert('Please select a status');
+    if (status==='RESOLVED' && !note.trim()) return alert('Resolution note is required');
+    const btn = document.getElementById('modal-save'); btn.disabled = true;
+    try {
+      await API.patch('/api/v1/complaints/'+currentComplaintId+'/status', {status, resolutionNote:note});
+      closeModal(); loadComplaints(currentPage); flash('Status updated successfully', true);
+    } catch(e) { alert('Update failed: '+e.message); btn.disabled = false; }
+  }
+
+  function openAssignModal(id, currentDeptName) {
+    assignComplaintId = id;
+    const sel = document.getElementById('assign-dept-select');
+    sel.innerHTML = '<option value="">— Select department —</option>';
+    allDepts.forEach(d => { const o=document.createElement('option'); o.value=d.id; o.textContent=d.name; sel.appendChild(o); });
+    document.getElementById('assign-current').textContent = currentDeptName ? 'Currently: '+currentDeptName : 'Currently unassigned';
+    document.getElementById('assign-modal').classList.add('open');
+  }
+  function closeAssignModal() { document.getElementById('assign-modal').classList.remove('open'); }
+  document.getElementById('assign-modal').addEventListener('click', e => { if(e.target.id==='assign-modal') closeAssignModal(); });
+
+  async function confirmAssign() {
+    const deptId = document.getElementById('assign-dept-select').value;
+    if (!deptId) return alert('Please select a department');
+    try {
+      await API.patch('/api/v1/complaints/'+assignComplaintId+'/assign-dept', {deptId:parseInt(deptId)});
+      closeAssignModal(); loadComplaints(currentPage); flash('Department assigned successfully', true);
+    } catch(e) { alert('Assignment failed: '+e.message); }
+  }
+
+  function flash(msg, ok) {
+    const el = document.getElementById('flash');
+    el.className = 'flash '+(ok?'ok':'err');
+    el.textContent = (ok?'✅ ':'❌ ')+msg;
+    setTimeout(() => el.style.display='none', 3500);
+  }
+
+  function resetFilters() { ['f-status','f-dept','f-priority','f-category'].forEach(id=>document.getElementById(id).value=''); loadComplaints(); }
+
+  function exportCSV() {
+    const status = document.getElementById('f-status').value;
+    const token  = API.getToken();
+    const url    = '/api/v1/complaints/export-csv'+(status?'?status='+status:'');
+    fetch(url, {headers:{Authorization:'Bearer '+token}})
+      .then(r=>r.blob()).then(blob=>{
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob); a.download='complaints_'+new Date().toISOString().slice(0,10)+'.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }).catch(()=>alert('Export failed.'));
+  }
+
+  function pBadge(p){return`<span class="p-badge p-${p||'LOW'}">${p||'?'}</span>`;}
+  function sBadge(s){return`<span class="s-badge s-${(s||'SUBMITTED').replace(/ /g,'_')}">${(s||'?').replace(/_/g,' ')}</span>`;}
+  function fmtDate(ts){if(!ts)return'—';const d=new Date(ts);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+', '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});}
+  function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+
+/* ── Language Panel ─────────────────────────────────────────── */
+  function openLangPanel() {
+  document.getElementById('lang-overlay').classList.add('lp-open');
+  refreshLangPanel();
+}
+function closeLangPanel() {
+  document.getElementById('lang-overlay').classList.remove('lp-open');
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('lang-overlay')) closeLangPanel();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLangPanel(); });
+
+function refreshLangPanel() {
+  const cur   = AdminLang.getCode();
+  const theme = localStorage.getItem('civic-theme') || 'dark';
+
+  /* Language cards */
+  ['en','ta','hi'].forEach(code => {
+    const card = document.getElementById('lc-' + code);
+    const radio = document.getElementById('lr-' + code);
+    if (!card) return;
+    const active = code === cur;
+    card.classList.toggle('lc-active', active);
+    /* radio visual handled by CSS ::after */
+  });
+
+  /* Sidebar label */
+  const lang = AdminLang.get();
+  const lbl  = document.getElementById('sb-lang-label');
+  if (lbl) lbl.textContent = lang.flag + ' ' + lang.nativeLabel;
+
+  /* Theme pills */
+  ['dark','light','system'].forEach(t => {
+    const pill = document.getElementById('ltp-' + t);
+    if (pill) pill.classList.toggle('ltp-active', t === theme);
+  });
+
+  /* Preview text */
+  const prev = document.getElementById('lp-preview-text');
+  if (prev) prev.textContent = `${lang.flag} ${lang.label} (${lang.nativeLabel}) is active · saved to browser`;
+}
+
+/* ════════════════════════════════════════════════
+   LANGUAGE SELECTION — no reload, no logout
+════════════════════════════════════════════════ */
+function selectLang(code) {
+  AdminLang.set(code);          // saves to localStorage + swaps DOM text
+  refreshLangPanel();           // update radio visuals
+  showLangToast(code);          // brief confirmation
+}
+
+function setTheme(t) {
+  localStorage.setItem('civic-theme', t);
+  refreshLangPanel();
+  toast('🎨 Theme: ' + t.charAt(0).toUpperCase() + t.slice(1));
+}
+
+function showLangToast(code) {
+  const lang = AdminLang.T[code];
+  if (!lang) return;
+  const msg  = `${lang.flag} Language changed to ${lang.label} (${lang.nativeLabel})`;
+  toast(msg);
+}
+
+let _toastTimer;
+function toast(msg) {
+  const old = document.getElementById('lp-toast');
+  if (old) old.remove();
+  clearTimeout(_toastTimer);
+  const el = document.createElement('div');
+  el.id = 'lp-toast';
+  el.className = 'lp-toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  _toastTimer = setTimeout(() => { if(el.parentNode) el.remove(); }, 2800);
+}
+
+
+  /* Init */
+  AdminLang.applyToPage();
+  boot();
+</script>
+
+<!-- Language Settings Panel -->
+<div id="lang-overlay" onclick="handleOverlayClick(event)">
+  <div id="lang-panel">
+
+    <!-- Header -->
+    <div class="lp-head">
+      <div class="lp-head-left">
+        <h2>⚙️ Dashboard Settings</h2>
+        <p>Language &amp; display preferences · No logout required</p>
+      </div>
+      <button class="lp-x" onclick="closeLangPanel()">✕</button>
+    </div>
+
+    <!-- Body -->
+    <div class="lp-body">
+
+      <!-- Language section -->
+      <div class="lp-label">🌐 Language / மொழி / भाषा</div>
+
+      <div id="lang-cards">
+
+        <div class="lang-card" id="lc-en" onclick="selectLang('en')">
+          <div class="lang-card-flag">🇬🇧</div>
+          <div class="lang-card-text">
+            <div class="lang-card-name">English</div>
+            <div class="lang-card-sub">Default language · International</div>
+          </div>
+          <div class="lang-card-radio" id="lr-en"></div>
+        </div>
+
+        <div class="lang-card" id="lc-ta" onclick="selectLang('ta')">
+          <div class="lang-card-flag">🇮🇳</div>
+          <div class="lang-card-text">
+            <div class="lang-card-name">Tamil — தமிழ்</div>
+            <div class="lang-card-sub">தமிழ்நாடு · Tamil Nadu, India</div>
+          </div>
+          <div class="lang-card-radio" id="lr-ta"></div>
+        </div>
+
+        <div class="lang-card" id="lc-hi" onclick="selectLang('hi')">
+          <div class="lang-card-flag">🇮🇳</div>
+          <div class="lang-card-text">
+            <div class="lang-card-name">Hindi — हिंदी</div>
+            <div class="lang-card-sub">भारत · National language of India</div>
+          </div>
+          <div class="lang-card-radio" id="lr-hi"></div>
+        </div>
+
+      </div>
+
+      <hr class="lp-divider">
+
+      <!-- Theme section -->
+      <div class="lp-label">🎨 Appearance</div>
+      <div class="lp-theme-row">
+        <button class="lp-theme-pill" id="ltp-dark"   onclick="setTheme('dark')">🌙 Dark</button>
+        <button class="lp-theme-pill" id="ltp-light"  onclick="setTheme('light')">☀️ Light</button>
+        <button class="lp-theme-pill" id="ltp-system" onclick="setTheme('system')">💻 System</button>
+      </div>
+
+      <hr class="lp-divider">
+
+      <!-- Current selection preview -->
+      <div id="lp-preview" style="background:rgba(91,94,246,0.08);border:1px solid rgba(91,94,246,0.2);border-radius:11px;padding:12px 16px;margin-bottom:4px;font-size:.82rem;color:#c4bfe0;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.1rem;">✅</span>
+        <span id="lp-preview-text">Language saved to browser — persists on refresh</span>
+      </div>
+
+      <!-- Footer buttons -->
+      <div class="lp-footer" style="margin-top:14px;">
+        <button class="lp-btn-done" onclick="closeLangPanel()">Done ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body></html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — CivicCMS</title>
+  <script src="/js/api.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f18; --sidebar: #12141f; --surface: #1a1d2e;
+      --surface2: #222539; --border: rgba(255,255,255,0.07);
+      --text: #e2e8f0; --muted: #7a839a;
+      --accent: #5b6ef5; --accent2: #818cf8;
+      --green: #22c55e; --orange: #f97316; --purple: #a855f7; --red: #ef4444;
+      --font: 'Inter', system-ui, sans-serif;
+    }
+    html, body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100%; overflow: hidden; }
+    .app-shell { display: flex; height: 100vh; overflow: hidden; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 248px; flex-shrink: 0;
+      background: var(--sidebar); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+      transition: width 0.28s cubic-bezier(.4,0,.2,1);
+      position: relative; z-index: 10;
+    }
+    .sidebar.collapsed { width: 68px; }
+    .sidebar-header {
+      padding: 18px 14px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      min-height: 70px; overflow: hidden;
+    }
+    .sb-avatar {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .sb-info { flex: 1; overflow: hidden; min-width: 0; }
+    .sb-name { font-size: 0.88rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sb-plan { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .sb-chevron { background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; transition: all .2s; flex-shrink: 0; font-size: 14px; }
+    .sb-chevron:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+    .collapsed .sb-info, .collapsed .sb-chevron { display: none; }
+
+    .sidebar-nav { flex: 1; padding: 10px 8px; overflow-y: auto; scrollbar-width: none; }
+    .sidebar-nav::-webkit-scrollbar { display: none; }
+    .nav-section-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 12px 10px 5px; white-space: nowrap; overflow: hidden; transition: all .2s; }
+    .collapsed .nav-section-label { opacity: 0; height: 0; padding: 0; margin: 0; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 10px; border-radius: 10px; cursor: pointer;
+      text-decoration: none; color: var(--muted);
+      font-size: 0.84rem; font-weight: 500;
+      transition: all .18s; position: relative;
+      white-space: nowrap; overflow: hidden; margin-bottom: 1px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .nav-item.active { background: rgba(91,110,245,0.16); color: var(--accent2); font-weight: 600; }
+    .nav-item.active::before { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:20px; background:var(--accent); border-radius:0 3px 3px 0; }
+    .nav-icon { font-size: 16px; flex-shrink: 0; width: 22px; text-align: center; }
+    .nav-label { flex: 1; }
+    .nav-badge { background: var(--accent); color: #fff; font-size: 0.62rem; font-weight: 700; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .collapsed .nav-label, .collapsed .nav-badge { display: none; }
+    .collapsed .nav-item { justify-content: center; padding: 10px 0; }
+
+    .sidebar-footer { padding: 10px 8px 14px; border-top: 1px solid var(--border); }
+
+    .collapse-btn {
+      position: absolute; top: 50%; right: -14px; transform: translateY(-50%);
+      width: 28px; height: 28px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 12px; transition: all .2s; z-index: 20;
+    }
+    .collapse-btn:hover { background: var(--surface2); color: var(--text); }
+
+    /* MAIN */
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .topbar {
+      height: 64px; background: var(--sidebar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; flex-shrink: 0;
+    }
+    .topbar-left h1 { font-size: 1.45rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .topbar-left p { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .topbar-btn {
+      width: 38px; height: 38px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 15px; color: var(--muted); text-decoration: none; transition: all .2s; position: relative;
+    }
+    .topbar-btn:hover { background: var(--surface2); color: var(--text); }
+    .notif-dot { position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; border: 2px solid var(--sidebar); }
+
+    .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+    /* STAT CARDS */
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 20px; transition: transform .2s, box-shadow .2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 36px rgba(0,0,0,.35); border-color: rgba(255,255,255,.12); }
+    .stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+    .stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .si-blue   { background: rgba(91,110,245,0.15); }
+    .si-green  { background: rgba(34,197,94,0.13); }
+    .si-purple { background: rgba(168,85,247,0.15); }
+    .si-orange { background: rgba(249,115,22,0.14); }
+    .stat-trend { font-size: 0.71rem; font-weight: 600; color: var(--green); display: flex; align-items: center; gap: 3px; }
+    .stat-trend.down { color: var(--red); }
+    .stat-value { font-size: 1.95rem; font-weight: 800; color: var(--text); letter-spacing: -0.04em; line-height: 1; margin-bottom: 5px; }
+    .stat-label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+    .stat-sub { font-size: 0.71rem; color: var(--green); margin-top: 6px; font-weight: 500; }
+    .stat-sub.muted { color: var(--muted); }
+
+    /* TRACK BAR */
+    .track-bar {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 20px; margin-bottom: 22px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    .track-bar-label { font-size: 0.84rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+    .track-input { flex: 1; min-width: 140px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: 0.84rem; padding: 8px 13px; font-family: inherit; transition: border-color .2s; }
+    .track-input:focus { outline: none; border-color: var(--accent); }
+    .track-btn { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 9px 20px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    .track-btn:hover { background: var(--accent2); }
+
+    /* BOTTOM */
+    .bottom-grid { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .panel-title { font-size: 0.93rem; font-weight: 700; color: var(--text); }
+    .panel-link { font-size: 0.77rem; color: var(--accent2); text-decoration: none; font-weight: 500; transition: opacity .2s; }
+    .panel-link:hover { opacity: 0.7; }
+
+    .activity-item { display: flex; align-items: center; gap: 13px; padding: 13px 20px; border-bottom: 1px solid var(--border); transition: background .15s; }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-item:hover { background: rgba(255,255,255,.02); }
+    .act-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .ai-blue { background: rgba(91,110,245,0.15); }
+    .ai-green { background: rgba(34,197,94,0.13); }
+    .ai-purple { background: rgba(168,85,247,0.15); }
+    .ai-orange { background: rgba(249,115,22,0.14); }
+    .act-info { flex: 1; min-width: 0; }
+    .act-title { font-size: 0.85rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .act-sub { font-size: 0.73rem; color: var(--muted); margin-top: 2px; }
+    .act-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+    .act-time { font-size: 0.71rem; color: var(--muted); }
+
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; }
+    .b-green  { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .b-blue   { background: rgba(91,110,245,.15); color: #818cf8; }
+    .b-yellow { background: rgba(234,179,8,.15);  color: #facc15; }
+    .b-red    { background: rgba(239,68,68,.15);  color: #f87171; }
+
+    .qs-item { padding: 13px 20px; border-bottom: 1px solid var(--border); }
+    .qs-item:last-child { border-bottom: none; }
+    .qs-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+    .qs-label { font-size: 0.81rem; color: var(--muted); }
+    .qs-value { font-size: 0.84rem; font-weight: 700; color: var(--text); }
+    .qs-bar { height: 6px; background: var(--surface2); border-radius: 999px; overflow: hidden; }
+    .qs-fill { height: 100%; border-radius: 999px; }
+
+    .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: 10px; }
+    @keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 5; }
+
+    @media (max-width: 1100px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 800px)  { .bottom-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) {
+      .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(-100%); transition: transform .28s; }
+      .sidebar.mobile-open { transform: translateX(0); }
+      .sidebar-overlay.show { display: block; }
+      .collapse-btn { display: none; }
+      .content { padding: 16px; }
+      .topbar { padding: 0 16px; }
+      #mobile-menu-btn { display: flex !important; }
+    }
+    @media (max-width: 480px) { .stat-grid { grid-template-columns: 1fr; } }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <button class="collapse-btn" id="collapse-btn" title="Toggle sidebar">‹</button>
+    <div class="sidebar-header">
+      <div class="sb-avatar" id="sb-avatar">?</div>
+      <div class="sb-info">
+        <div class="sb-name" id="sb-name">Loading…</div>
+        <div class="sb-plan" id="sb-plan">Citizen</div>
+      </div>
+      <button class="sb-chevron">▾</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">MAIN</div>
+      <a href="/dashboard.html" class="nav-item active">
+        <span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/submit.html" class="nav-item">
+        <span class="nav-icon">📝</span><span class="nav-label">Submit Complaint</span>
+      </a>
+      <a href="/track.html" class="nav-item">
+        <span class="nav-icon">🔍</span><span class="nav-label">Track Status</span>
+      </a>
+      <a href="/history.html" class="nav-item">
+        <span class="nav-icon">📋</span><span class="nav-label">My Complaints</span>
+        <span class="nav-badge" id="complaint-count" style="display:none;">0</span>
+      </a>
+      <a href="/chatbot.html" class="nav-item">
+        <span class="nav-icon">🤖</span><span class="nav-label">AI Chatbot</span>
+      </a>
+      <a href="/feedback.html" class="nav-item">
+        <span class="nav-icon">⭐</span><span class="nav-label">Feedback</span>
+      </a>
+      <div class="nav-section-label" style="margin-top:8px;">ACCOUNT</div>
+      <a href="/settings.html" class="nav-item">
+        <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+      </a>
+      <a href="/index.html" class="nav-item">
+        <span class="nav-icon">🌐</span><span class="nav-label">View Site</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="nav-item" onclick="doLogout()" style="color:#f87171;">
+        <span class="nav-icon">🚪</span><span class="nav-label">Sign Out</span>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-overlay" id="sb-overlay"></div>
+
+  <!-- MAIN -->
+  <div class="main-area">
+    <div class="topbar">
+      <div class="topbar-left" style="display:flex;align-items:center;gap:14px;">
+        <button class="topbar-btn" id="mobile-menu-btn" style="display:none;" onclick="toggleMobile()">☰</button>
+        <div>
+          <h1>Dashboard</h1>
+          <p>Welcome back to your dashboard</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-btn" title="Notifications" onclick="document.getElementById('notif-dot').style.display='none'">
+          🔔<div class="notif-dot" id="notif-dot"></div>
+        </div>
+        <button class="topbar-btn" title="Toggle theme" onclick="toggleTheme()">🌙</button>
+        <a href="/settings.html" class="topbar-btn" title="Account">👤</a>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- STAT CARDS -->
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-card"><div class="skeleton" style="height:110px;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:110px;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:110px;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:110px;"></div></div>
+      </div>
+
+      <!-- QUICK TRACK -->
+      <div class="track-bar">
+        <div class="track-bar-label">🔍 Quick Track</div>
+        <input class="track-input" type="text" id="quick-id" placeholder="Enter Complaint ID…"/>
+        <button class="track-btn" onclick="quickTrack()">Track →</button>
+        <div id="track-result" style="width:100%;display:none;font-size:.82rem;"></div>
+      </div>
+
+      <!-- BOTTOM GRID -->
+      <div class="bottom-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Recent Activity</div>
+            <a href="/history.html" class="panel-link">View all</a>
+          </div>
+          <div id="activity-list">
+            <div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem;">Loading activity…</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Quick Stats</div></div>
+          <div id="quick-stats">
+            <div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem;">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+if (!API.isLogged()) window.location.href = '/login.html';
+const _name = API.getName() || 'User';
+const _role = API.getRole() || 'USER';
+document.getElementById('sb-name').textContent   = _name;
+document.getElementById('sb-plan').textContent   = _role === 'USER' ? 'Citizen Plan' : _role;
+document.getElementById('sb-avatar').textContent = _name.charAt(0).toUpperCase();
+
+/* Sidebar collapse */
+const sidebar = document.getElementById('sidebar');
+const colBtn  = document.getElementById('collapse-btn');
+let collapsed = false;
+colBtn.addEventListener('click', () => {
+  collapsed = !collapsed;
+  sidebar.classList.toggle('collapsed', collapsed);
+  colBtn.textContent = collapsed ? '›' : '‹';
+});
+
+/* Mobile */
+const overlay = document.getElementById('sb-overlay');
+function toggleMobile() { sidebar.classList.toggle('mobile-open'); overlay.classList.toggle('show'); }
+overlay.addEventListener('click', toggleMobile);
+if (window.innerWidth <= 700) document.getElementById('mobile-menu-btn').style.display = 'flex';
+window.addEventListener('resize', () => {
+  document.getElementById('mobile-menu-btn').style.display = window.innerWidth <= 700 ? 'flex' : 'none';
+});
+
+/* Theme */
+function toggleTheme() {
+  const cur = localStorage.getItem('civic-theme') || 'dark';
+  localStorage.setItem('civic-theme', cur === 'dark' ? 'light' : 'dark');
+}
+
+/* Load data */
+async function loadDashboard() {
+  try {
+    const d = await API.get('/api/v1/analytics/summary');
+    renderStats(d); renderQuickStats(d);
+  } catch { renderStats(null); renderQuickStats(null); }
+
+  try {
+    const res  = await API.get('/api/v1/complaints/my?size=6');
+    const list = Array.isArray(res) ? res : (res.content || []);
+    renderActivity(list);
+    const total = res.totalElements || list.length;
+    if (total > 0) { const b = document.getElementById('complaint-count'); b.textContent = total; b.style.display = 'flex'; }
+  } catch { renderActivity([]); }
+}
+
+function renderStats(d) {
+  const cards = [
+    { icon:'💰', cls:'si-blue',   val: d?.totalAll   ?? '—', label:'Total Complaints',  sub:'+12% from last month',  subCls:'',      trend:'↗ +12%', dn:false },
+    { icon:'👥', cls:'si-green',  val: d?.totalToday  ?? '—', label:"Today's Submitted", sub:'+5% from last week',   subCls:'',      trend:'↗ +5%',  dn:false },
+    { icon:'🛒', cls:'si-purple', val: d?.escalated   ?? '—', label:'Escalated Cases',   sub:'+8% from yesterday',  subCls:'',      trend:'↗ +8%',  dn:true  },
+    { icon:'📦', cls:'si-orange', val: d?.resolved    ?? '—', label:'Resolved',          sub:'+3 new this week',    subCls:'muted', trend:'↗ New',  dn:false }
+  ];
+  document.getElementById('stat-grid').innerHTML = cards.map(c => `
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon ${c.cls}">${c.icon}</div>
+        <div class="stat-trend ${c.dn?'down':''}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          ${c.trend}
+        </div>
+      </div>
+      <div class="stat-value">${c.val}</div>
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-sub ${c.subCls}">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderActivity(list) {
+  if (!list.length) {
+    document.getElementById('activity-list').innerHTML = '<div style="padding:28px;text-align:center;color:var(--muted);font-size:.83rem;">No recent activity.</div>';
+    return;
+  }
+  const p = ['ai-blue','ai-green','ai-purple','ai-orange'];
+  const e = ['📝','✅','🔄','⚠️'];
+  document.getElementById('activity-list').innerHTML = list.slice(0,6).map((c,i) => `
+    <div class="activity-item">
+      <div class="act-icon ${p[i%4]}">${e[i%4]}</div>
+      <div class="act-info">
+        <div class="act-title">${c.title||'Complaint #'+c.id}</div>
+        <div class="act-sub">CMP-${c.id} · ${c.category||'General'}</div>
+      </div>
+      <div class="act-right">
+        ${badge(c.status)}
+        <div class="act-time">${timeAgo(c.createdAt)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderQuickStats(d) {
+  [
+    { label:'Conversion Rate', val:32, display:'3.2%', color:'#5b6ef5' },
+    { label:'Bounce Rate',     val:45, display:'45%',  color:'#f97316' },
+    { label:'Page Views',      val:87, display:'8.7k', color:'#22c55e' }
+  ].forEach(b => {
+    document.getElementById('quick-stats').innerHTML += `
+      <div class="qs-item">
+        <div class="qs-row"><div class="qs-label">${b.label}</div><div class="qs-value">${b.display}</div></div>
+        <div class="qs-bar"><div class="qs-fill" style="width:${b.val}%;background:${b.color};"></div></div>
+      </div>`;
+  });
+  // Clear loading text first
+  document.getElementById('quick-stats').innerHTML = [
+    { label:'Conversion Rate', val:32, display:'3.2%', color:'#5b6ef5' },
+    { label:'Bounce Rate',     val:45, display:'45%',  color:'#f97316' },
+    { label:'Page Views',      val:87, display:'8.7k', color:'#22c55e' }
+  ].map(b => `
+    <div class="qs-item">
+      <div class="qs-row"><div class="qs-label">${b.label}</div><div class="qs-value">${b.display}</div></div>
+      <div class="qs-bar"><div class="qs-fill" style="width:${b.val}%;background:${b.color};"></div></div>
+    </div>`).join('');
+}
+
+async function quickTrack() {
+  const id = document.getElementById('quick-id').value.trim();
+  const box = document.getElementById('track-result');
+  if (!id) return;
+  box.style.display = 'block';
+  box.innerHTML = '<span style="color:var(--muted)">Searching…</span>';
+  try {
+    const d = await API.get('/api/v1/complaints/track/' + id);
+    box.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin-top:8px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.85rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">CMP-${d.id}: ${d.title}</div>
+        <div style="font-size:.73rem;color:var(--muted);margin-top:3px;">${d.category||''} · ${d.department||''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        ${badge(d.status)}
+        <a href="/track.html?id=${d.id}" style="font-size:.75rem;color:var(--accent2);text-decoration:none;font-weight:600;">View →</a>
+      </div>
+    </div>`;
+  } catch {
+    box.innerHTML = '<span style="color:#f87171;font-size:.8rem;">Complaint not found.</span>';
+  }
+}
+
+function badge(s) {
+  const m = { RESOLVED:'b-green', IN_PROGRESS:'b-blue', PENDING:'b-yellow', ESCALATED:'b-red' };
+  return `<span class="badge ${m[s]||'b-blue'}">${(s||'PENDING').replace(/_/g,' ')}</span>`;
+}
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const m = Math.floor((Date.now() - new Date(ts)) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  if (m < 1440) return Math.floor(m/60) + 'h ago';
+  return Math.floor(m/1440) + 'd ago';
+}
+function doLogout() { API.clearSession(); window.location.href = '/login.html'; }
+document.getElementById('quick-id').addEventListener('keydown', e => { if (e.key==='Enter') quickTrack(); });
+loadDashboard();
+</script>
+</body>
+</html>

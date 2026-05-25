@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings — CivicCMS</title>
+  <script src="/js/api.js"></script>
+  <script src="/js/admin-lang.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f18; --sidebar:  #12141f;
+      --surface:  #1a1d2e; --surface2: #222539;
+      --border:   rgba(255,255,255,0.07);
+      --text:     #e2e8f0; --muted:    #7a839a;
+      --accent:   #5b6ef5; --accent2:  #818cf8;
+      --green:    #22c55e; --red:      #ef4444;
+      --font: 'Inter', system-ui, sans-serif;
+    }
+    [data-theme="light"] {
+      --bg: #f4f5fa; --sidebar: #ffffff; --surface: #ffffff;
+      --surface2: #f0f1f8; --border: rgba(0,0,0,0.07);
+      --text: #1a1d2e; --muted: #6b7280;
+    }
+
+    html, body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      height: 60px;
+      background: var(--sidebar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; position: sticky; top: 0; z-index: 10;
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .brand-icon { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg,var(--accent),#a855f7); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .brand-name { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .brand-name span { color: var(--accent2); }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .topbar-link { font-size: 0.82rem; font-weight: 500; color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: all .2s; }
+    .topbar-link:hover { background: rgba(255,255,255,.05); color: var(--text); }
+    .topbar-link.active { color: var(--accent2); background: rgba(91,110,245,.1); }
+
+    /* ── PAGE ── */
+    .page { max-width: 780px; margin: 36px auto; padding: 0 20px 80px; }
+    .page-head { margin-bottom: 28px; }
+    .page-head h1 { font-size: 1.55rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .page-head p  { font-size: 0.84rem; color: var(--muted); margin-top: 5px; }
+
+    /* ── SECTION ── */
+    .section { margin-bottom: 22px; }
+    .section-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .section-header {
+      padding: 16px 22px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(91,110,245,0.14);
+      display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0;
+    }
+    .section-icon.orange { background: rgba(249,115,22,.14); }
+    .section-icon.green  { background: rgba(34,197,94,.13); }
+    .section-icon.red    { background: rgba(239,68,68,.13); }
+    .section-icon.purple { background: rgba(168,85,247,.14); }
+    .section-meta { flex: 1; }
+    .section-title { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+    .section-desc  { font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── SETTING ROW ── */
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px; border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-row.clickable { cursor: pointer; }
+    .setting-row.clickable:hover { background: rgba(255,255,255,.02); }
+    .row-left { display: flex; align-items: center; gap: 13px; }
+    .row-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+    }
+    .row-name { font-size: 0.87rem; font-weight: 500; color: var(--text); }
+    .row-hint { font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
+    .row-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .chevron { color: var(--muted); font-size: 0.9rem; }
+
+    /* ── TOGGLE ── */
+    .toggle-wrap { position: relative; display: inline-flex; }
+    .toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track {
+      width: 44px; height: 24px; background: rgba(255,255,255,.1);
+      border-radius: 12px; cursor: pointer; position: relative; transition: background .25s;
+    }
+    .toggle-wrap input:checked + .toggle-track { background: var(--accent); }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      background: #fff; border-radius: 50%;
+      transition: transform .25s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    }
+    .toggle-wrap input:checked ~ .toggle-track .toggle-thumb,
+    .toggle-wrap input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); }
+
+    /* ── SELECT ── */
+    .row-select {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--text);
+      font-size: 0.82rem; padding: 7px 28px 7px 11px;
+      cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a839a' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 9px center;
+      transition: border-color .2s;
+    }
+    .row-select:focus { outline: none; border-color: var(--accent); }
+
+    /* ── PROFILE BLOCK ── */
+    .profile-block {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 22px; border-bottom: 1px solid var(--border);
+    }
+    .profile-avatar {
+      width: 54px; height: 54px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .profile-text { flex: 1; }
+    .profile-name  { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .profile-email { font-size: 0.77rem; color: var(--muted); margin-top: 3px; }
+    .profile-badge {
+      display: inline-block; margin-top: 5px;
+      font-size: 0.65rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px;
+      background: rgba(91,110,245,.18); color: var(--accent2);
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .edit-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--text); font-size: 0.8rem; font-weight: 500;
+      padding: 7px 16px; cursor: pointer; transition: all .2s;
+    }
+    .edit-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+    /* ── LANGUAGE RADIO ── */
+    .lang-options { padding: 16px 22px; display: flex; flex-direction: column; gap: 10px; }
+    .lang-option {
+      display: flex; align-items: center; gap: 13px;
+      padding: 12px 16px; border-radius: 11px;
+      border: 1.5px solid var(--border); cursor: pointer;
+      transition: all .2s;
+    }
+    .lang-option:hover { border-color: rgba(91,110,245,.4); background: rgba(91,110,245,.05); }
+    .lang-option.selected { border-color: var(--accent); background: rgba(91,110,245,.1); }
+    .lang-radio {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s;
+    }
+    .lang-option.selected .lang-radio { border-color: var(--accent); background: var(--accent); }
+    .lang-option.selected .lang-radio::after {
+      content: ''; width: 7px; height: 7px;
+      border-radius: 50%; background: #fff;
+    }
+    .lang-flag { font-size: 18px; }
+    .lang-name-text { font-size: 0.87rem; font-weight: 600; color: var(--text); }
+    .lang-name-native { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+    .lang-check { margin-left: auto; color: var(--accent); display: none; }
+    .lang-option.selected .lang-check { display: block; }
+
+    /* ── THEME PILLS ── */
+    .theme-options { padding: 16px 22px; display: flex; gap: 12px; }
+    .theme-pill {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 16px; border-radius: 11px;
+      border: 1.5px solid var(--border); cursor: pointer;
+      font-size: 0.85rem; font-weight: 600; color: var(--muted);
+      transition: all .2s;
+    }
+    .theme-pill:hover { border-color: rgba(255,255,255,.2); color: var(--text); }
+    .theme-pill.active { border-color: var(--accent); background: rgba(91,110,245,.1); color: var(--accent2); }
+
+    /* ── MODAL ── */
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,.72);
+      backdrop-filter: blur(4px); z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .modal-bg.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 18px; padding: 28px;
+      width: min(500px, 94vw);
+      transform: translateY(24px) scale(0.97); transition: transform .2s;
+    }
+    .modal-bg.open .modal-box { transform: translateY(0) scale(1); }
+    .modal-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 0.74rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 6px; }
+    .form-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--text); font-size: 0.87rem;
+      padding: 10px 13px; font-family: inherit; transition: border-color .2s;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+    .btn-cancel {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--muted); font-size: 0.84rem;
+      padding: 9px 20px; cursor: pointer; transition: all .2s;
+    }
+    .btn-cancel:hover { border-color: var(--muted); color: var(--text); }
+    .btn-save {
+      background: var(--accent); border: none;
+      border-radius: 9px; color: #fff; font-size: 0.84rem; font-weight: 600;
+      padding: 9px 24px; cursor: pointer; transition: all .2s;
+    }
+    .btn-save:hover { background: var(--accent2); }
+    .form-msg { font-size: 0.8rem; padding: 9px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
+    .form-msg.ok  { background: rgba(34,197,94,.14); color: #4ade80; border: 1px solid rgba(34,197,94,.2); display: block; }
+    .form-msg.err { background: rgba(239,68,68,.14); color: #f87171; border: 1px solid rgba(239,68,68,.2); display: block; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #1e2535; border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 0.84rem; padding: 10px 22px;
+      opacity: 0; transition: all .3s; z-index: 9999;
+      pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 600px) {
+      .topbar { padding: 0 16px; }
+      .topbar-link { display: none; }
+      .page { padding: 0 14px 60px; margin-top: 22px; }
+      .theme-options { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="/index.html" class="topbar-brand">
+    <div class="brand-icon">🏛️</div>
+    <span class="brand-name"><span>Civic</span>CMS</span>
+  </a>
+  <nav class="topbar-right">
+    <a href="/index.html"    class="topbar-link">Home</a>
+    <a href="/dashboard.html" class="topbar-link">Dashboard</a>
+    <a href="/submit.html"   class="topbar-link">Submit</a>
+    <a href="/track.html"    class="topbar-link">Track</a>
+    <a href="/settings.html" class="topbar-link active">Settings</a>
+  </nav>
+</header>
+
+<!-- PAGE -->
+<main class="page">
+  <div class="page-head">
+    <h1>Settings</h1>
+    <p>Manage your account preferences and application settings</p>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="section">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-icon">👤</div>
+        <div class="section-meta">
+          <div class="section-title">Profile</div>
+          <div class="section-desc">Your personal account details</div>
+        </div>
+      </div>
+      <div class="profile-block">
+        <div class="profile-avatar" id="p-avatar">?</div>
+        <div class="profile-text">
+          <div class="profile-name" id="p-name">Loading…</div>
+          <div class="profile-email" id="p-email">—</div>
+          <span class="profile-badge" id="p-role">USER</span>
+        </div>
+        <button class="edit-btn" onclick="openModal('profile-modal')">Edit Profile</button>
+      </div>
+      <div class="setting-row clickable" onclick="openModal('password-modal')">
+        <div class="row-left">
+          <div class="row-icon">🔑</div>
+          <div>
+            <div class="row-name">Change Password</div>
+            <div class="row-hint">Update your account password</div>
+          </div>
+        </div>
+        <div class="row-right"><span class="chevron">›</span></div>
+      </div>
+      <div class="setting-row">
+        <div class="row-left">
+          <div class="row-icon">🔐</div>
+          <div>
+            <div class="row-name">Two-Factor Auth</div>
+            <div class="row-hint">Extra layer of login security</div>
+          </div>
+        </div>
+        <div class="row-right">
+          <label class="toggle-wrap" onclick="event.stopPropagation()">
+            <input type="checkbox" id="t-2fa" onchange="savePref('2fa',this.checked)"/>
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPEARANCE -->
+  <div class="section">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-icon purple">🎨</div>
+        <div class="section-meta">
+          <div class="section-title">Appearance</div>
+          <div class="section-desc">Choose how CivicCMS looks to you</div>
+        </div>
+      </div>
+      <div class="theme-options">
+        <button class="theme-pill" id="pill-light" onclick="setTheme('light')">☀️ Light</button>
+        <button class="theme-pill active" id="pill-dark"  onclick="setTheme('dark')">🌙 Dark</button>
+        <button class="theme-pill" id="pill-system" onclick="setTheme('system')">💻 System</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LANGUAGE -->
+  <div class="section">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-icon orange">🌐</div>
+        <div class="section-meta">
+          <div class="section-title">Language & Region</div>
+          <div class="section-desc">Select your preferred display language</div>
+        </div>
+      </div>
+      <div class="lang-options">
+        <div class="lang-option" id="lang-en" onclick="selectLang('en')" role="button" tabindex="0">
+          <div class="lang-radio"></div>
+          <div class="lang-flag">🇬🇧</div>
+          <div style="flex:1;">
+            <div class="lang-name-text">English</div>
+            <div class="lang-name-native">Default language · International</div>
+          </div>
+          <span class="lang-check" aria-hidden="true">✓</span>
+        </div>
+        <div class="lang-option" id="lang-ta" onclick="selectLang('ta')" role="button" tabindex="0">
+          <div class="lang-radio"></div>
+          <div class="lang-flag">🇮🇳</div>
+          <div style="flex:1;">
+            <div class="lang-name-text">Tamil — தமிழ்</div>
+            <div class="lang-name-native">தமிழ்நாடு · Tamil Nadu, India</div>
+          </div>
+          <span class="lang-check" aria-hidden="true">✓</span>
+        </div>
+        <div class="lang-option" id="lang-hi" onclick="selectLang('hi')" role="button" tabindex="0">
+          <div class="lang-radio"></div>
+          <div class="lang-flag">🇮🇳</div>
+          <div style="flex:1;">
+            <div class="lang-name-text">Hindi — हिंदी</div>
+            <div class="lang-name-native">भारत · National language of India</div>
+          </div>
+          <span class="lang-check" aria-hidden="true">✓</span>
+        </div>
+      </div>
+      <!-- Saved confirmation -->
+      <div id="lang-save-info" style="margin:0 22px 16px;padding:10px 14px;border-radius:9px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.18);font-size:.78rem;color:#4ade80;display:none;align-items:center;gap:8px;">
+        ✅ <span id="lang-save-msg">Language saved — stays after refresh</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="section">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-icon green">🔔</div>
+        <div class="section-meta">
+          <div class="section-title">Notifications</div>
+          <div class="section-desc">Control how and when you receive alerts</div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="row-left">
+          <div class="row-icon">📩</div>
+          <div><div class="row-name">Email Notifications</div><div class="row-hint">Status updates sent to your email</div></div>
+        </div>
+        <div class="row-right">
+          <label class="toggle-wrap">
+            <input type="checkbox" id="t-email" checked onchange="savePref('emailNotif',this.checked)"/>
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </label>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="row-left">
+          <div class="row-icon">📳</div>
+          <div><div class="row-name">Push Notifications</div><div class="row-hint">Browser alerts for updates</div></div>
+        </div>
+        <div class="row-right">
+          <label class="toggle-wrap">
+            <input type="checkbox" id="t-push" onchange="savePref('pushNotif',this.checked)"/>
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </label>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="row-left">
+          <div class="row-icon">📊</div>
+          <div><div class="row-name">Weekly Digest</div><div class="row-hint">Summary report every Monday</div></div>
+        </div>
+        <div class="row-right">
+          <label class="toggle-wrap">
+            <input type="checkbox" id="t-digest" checked onchange="savePref('digest',this.checked)"/>
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div class="section">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(234,179,8,.14);">💬</div>
+        <div class="section-meta">
+          <div class="section-title">Help & Support</div>
+          <div class="section-desc">Get help and provide feedback</div>
+        </div>
+      </div>
+      <div class="setting-row clickable" onclick="toast('📖 Documentation coming soon!')">
+        <div class="row-left">
+          <div class="row-icon">📖</div>
+          <div><div class="row-name">Documentation</div><div class="row-hint">User guides and FAQs</div></div>
+        </div>
+        <div class="row-right"><span class="chevron">›</span></div>
+      </div>
+      <div class="setting-row clickable" onclick="toast('✉️ Feedback coming soon!')">
+        <div class="row-left">
+          <div class="row-icon">✉️</div>
+          <div><div class="row-name">Send Feedback</div><div class="row-hint">Help us improve CivicCMS</div></div>
+        </div>
+        <div class="row-right"><span class="chevron">›</span></div>
+      </div>
+      <div style="text-align:center;padding:12px;font-size:.73rem;color:var(--muted);">Version 2.1.0</div>
+    </div>
+  </div>
+
+  <!-- DANGER ZONE -->
+  <div class="section">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-icon red">⚠️</div>
+        <div class="section-meta">
+          <div class="section-title" style="color:#ef4444;">Danger Zone</div>
+          <div class="section-desc">Irreversible actions for your account</div>
+        </div>
+      </div>
+      <div class="setting-row clickable" onclick="doLogout()" style="cursor:pointer;">
+        <div class="row-left">
+          <div class="row-icon" style="background:rgba(239,68,68,.12);">🚪</div>
+          <div><div class="row-name" style="color:#f87171;">Sign Out</div><div class="row-hint">Log out from all sessions</div></div>
+        </div>
+        <div class="row-right"><span class="chevron" style="color:#ef4444;">›</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- PROFILE MODAL -->
+<div class="modal-bg" id="profile-modal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Edit Profile</div>
+    <div class="form-msg" id="p-msg"></div>
+    <div class="form-group">
+      <label class="form-label" for="edit-name">Display Name</label>
+      <input class="form-input" type="text" id="edit-name" placeholder="Your full name"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="edit-phone">Phone (optional)</label>
+      <input class="form-input" type="tel" id="edit-phone" placeholder="+91 00000 00000"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('profile-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveProfile()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="modal-bg" id="password-modal">
+  <div class="modal-box">
+    <div class="modal-title">🔑 Change Password</div>
+    <div class="form-msg" id="pw-msg"></div>
+    <div class="form-group">
+      <label class="form-label">Current Password</label>
+      <input class="form-input" type="password" id="pw-old" placeholder="Enter current password"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input class="form-input" type="password" id="pw-new" placeholder="Min 8 characters"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm Password</label>
+      <input class="form-input" type="password" id="pw-confirm" placeholder="Re-enter new password"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('password-modal')">Cancel</button>
+      <button class="btn-save" onclick="savePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ── Init ── */
+window.addEventListener('DOMContentLoaded', () => {
+  if (!API.isLogged()) { window.location.href = '/login.html'; return; }
+
+  const name  = API.getName()  || 'User';
+  const email = API.getEmail() || '';
+  const role  = API.getRole()  || 'USER';
+
+  document.getElementById('p-avatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('p-name').textContent   = name;
+  document.getElementById('p-email').textContent  = email;
+  document.getElementById('p-role').textContent   = role;
+  document.getElementById('edit-name').value      = name;
+
+  /* Prefs */
+  const p = getPrefs();
+  document.getElementById('t-2fa').checked   = !!p['2fa'];
+  document.getElementById('t-email').checked = p.emailNotif !== false;
+  document.getElementById('t-push').checked  = !!p.pushNotif;
+  document.getElementById('t-digest').checked = p.digest !== false;
+
+  /* Theme */
+  const t = localStorage.getItem('civic-theme') || 'dark';
+  applyThemePills(t);
+  document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : t === 'light' ? 'light' : '');
+
+  /* Language — apply saved selection on load */
+  refreshLangUI();
+});
+
+/* ── Language ── */
+function refreshLangUI() {
+  const cur = (typeof AdminLang !== 'undefined') ? AdminLang.getCode() : (localStorage.getItem('civic-lang') || 'en');
+  document.querySelectorAll('.lang-option').forEach(el => el.classList.remove('selected'));
+  const active = document.getElementById('lang-' + cur);
+  if (active) active.classList.add('selected');
+}
+
+function selectLang(code) {
+  // Save language — does NOT touch session/token/logout
+  if (typeof AdminLang !== 'undefined') {
+    AdminLang.set(code);            // writes localStorage + swaps all data-i18n DOM text
+  } else {
+    localStorage.setItem('civic-lang', code);
+  }
+
+  // Update radio UI
+  refreshLangUI();
+
+  // Show saved confirmation inside the Language card
+  const saveInfo = document.getElementById('lang-save-info');
+  const saveMsg  = document.getElementById('lang-save-msg');
+  if (saveInfo && saveMsg) {
+    const LABELS = { en: 'English 🇬🇧', ta: 'Tamil — தமிழ் 🇮🇳', hi: 'Hindi — हिंदी 🇮🇳' };
+    saveMsg.textContent = (LABELS[code] || code) + ' saved — persists on page refresh';
+    saveInfo.style.display = 'flex';
+    setTimeout(() => { saveInfo.style.display = 'none'; }, 4000);
+  }
+
+  // Toast
+  const TOASTS = { en: '🇬🇧 English selected', ta: '🇮🇳 தமிழ் selected', hi: '🇮🇳 हिंदी selected' };
+  toast(TOASTS[code] || '🌐 Language saved');
+}
+
+/* ── Theme ── */
+function setTheme(t) {
+  localStorage.setItem('civic-theme', t);
+  document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : t === 'light' ? 'light' : '');
+  applyThemePills(t);
+  toast(t === 'dark' ? '🌙 Dark mode enabled' : t === 'light' ? '☀️ Light mode enabled' : '💻 System theme applied');
+}
+function applyThemePills(t) {
+  ['light','dark','system'].forEach(x => document.getElementById('pill-'+x).classList.toggle('active', x===t));
+}
+
+/* ── Prefs ── */
+function getPrefs() { try { return JSON.parse(localStorage.getItem('civic-prefs')||'{}'); } catch { return {}; } }
+function savePref(k, v) { const p=getPrefs(); p[k]=v; localStorage.setItem('civic-prefs',JSON.stringify(p)); toast('✅ Preference saved'); }
+
+/* ── Modals ── */
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(el => el.addEventListener('click', e => { if (e.target===el) el.classList.remove('open'); }));
+
+/* ── Profile save ── */
+function saveProfile() {
+  const name = document.getElementById('edit-name').value.trim();
+  const msg  = document.getElementById('p-msg');
+  if (!name) { msg.className='form-msg err'; msg.textContent='Name cannot be empty.'; return; }
+  localStorage.setItem('name', name);
+  document.getElementById('p-name').textContent   = name;
+  document.getElementById('p-avatar').textContent = name.charAt(0).toUpperCase();
+  msg.className='form-msg ok'; msg.textContent='Profile updated!';
+  setTimeout(() => closeModal('profile-modal'), 1200);
+}
+
+/* ── Password save ── */
+function savePassword() {
+  const np  = document.getElementById('pw-new').value;
+  const cp  = document.getElementById('pw-confirm').value;
+  const msg = document.getElementById('pw-msg');
+  if (np.length < 8) { msg.className='form-msg err'; msg.textContent='Password must be at least 8 characters.'; return; }
+  if (np !== cp)     { msg.className='form-msg err'; msg.textContent='Passwords do not match.'; return; }
+  msg.className='form-msg ok'; msg.textContent='Password updated!';
+  setTimeout(() => { closeModal('password-modal'); ['pw-old','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value=''); }, 1200);
+}
+
+/* ── Logout ── */
+function doLogout() { API.clearSession(); window.location.href = '/login.html'; }
+
+/* ── Toast ── */
+let _tt;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2600);
+}
+</script>
+</body>
+</html>

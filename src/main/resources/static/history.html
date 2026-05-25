@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>/* Prevent flash of wrong theme */
+    (function(){var t=localStorage.getItem('civicTheme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>My Complaints — CivicCMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <style>
+    .complaint-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-xs);
+      transition: box-shadow .2s, border-color .2s, transform .2s;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .complaint-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--indigo-mid);
+      transform: translateY(-2px);
+    }
+    .complaint-card.reveal { opacity:0; transform:translateY(14px); }
+    .complaint-card.reveal.in { opacity:1; transform:translateY(0); }
+    .cc-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .cc-body { flex: 1; min-width: 0; }
+    .cc-title {
+      font-family: var(--font-head); font-size: .95rem;
+      font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; margin-bottom: 4px;
+    }
+    .cc-meta {
+      font-size: .78rem; color: var(--text-muted);
+      font-family: var(--font-mono); display: flex;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .cc-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .empty-state {
+      text-align: center; padding: 64px 24px;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 4rem; margin-bottom: 16px; }
+    .empty-title { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-mini {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 18px;
+      box-shadow: var(--shadow-xs); text-align: center;
+    }
+    .stat-mini-val { font-family: var(--font-head); font-size: 1.6rem; font-weight: 800; color: var(--indigo); }
+    .stat-mini-lbl { font-size: .72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-top: 3px; }
+    @media(max-width:600px){ .stats-row{ grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">C</div>
+    <span><span class="brand-accent">Civic</span>CMS</span>
+  </div>
+        <div class="navbar-links">
+    <a href="/index.html" id="nav-home">Home</a>
+    <a href="/chatbot.html" id="nav-chatbot">🤖 AI Chatbot</a>
+    <a href="/submit.html" id="nav-submit">Submit</a>
+    <a href="/track.html" id="nav-track">Track</a>
+    <a href="/history.html" id="nav-my">My Complaints</a>
+    <a href="/feedback-wall.html" id="nav-reviews">💬 Reviews</a>
+  </div>
+  <!-- Settings Gear -->
+    <div id="civic-settings-wrap" style="display:flex;align-items:center;gap:8px;">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="CivicTheme.toggle()" title="Toggle theme">🌙</button>
+    <button id="civic-gear-btn" onclick="LangManager.toggleSettings(event)" title="Settings">⚙️</button>
+    <div id="civic-settings-panel">
+      <div class="settings-section-title">🎨 Theme</div>
+      <button class="theme-option" id="theme-opt-light" onclick="CivicTheme.set('light');LangManager.toggleSettings(event)"><span>☀️</span><span>Light</span><span class="lang-check" id="tchk-light"></span></button>
+      <button class="theme-option" id="theme-opt-dark" onclick="CivicTheme.set('dark');LangManager.toggleSettings(event)"><span>🌙</span><span>Dark</span><span class="lang-check" id="tchk-dark"></span></button>
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">🌐 Language</div>
+      <button class="lang-option" id="langopt-en" onclick="LangManager.switchTo('en')"><span>🇬🇧</span><span>English</span><span class="lang-check" id="lcheck-en"></span></button>
+      <button class="lang-option" id="langopt-ta" onclick="LangManager.switchTo('ta')"><span>🇮🇳</span><span>தமிழ்</span><span class="lang-check" id="lcheck-ta"></span></button>
+      <button class="lang-option" id="langopt-hi" onclick="LangManager.switchTo('hi')"><span>🇮🇳</span><span>हिंदी</span><span class="lang-check" id="lcheck-hi"></span></button>
+      <div class="settings-divider"></div>
+      <button class="logout-option" onclick="LangManager.doLogout()"><span>🚪</span><span id="settings-logout-text">Logout</span></button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-sm">
+  <div class="page-header">
+    <h2>📋 My Complaints</h2>
+    <p>All complaints you have submitted — track and manage them here.</p>
+  </div>
+
+  <!-- Login prompt if not logged in -->
+  <div id="login-prompt" style="display:none;">
+    <div class="card" style="text-align:center;padding:48px 24px;">
+      <div style="font-size:3rem;margin-bottom:12px;">🔐</div>
+      <h3 style="font-family:var(--font-head);font-size:1.2rem;font-weight:700;margin-bottom:8px;">Login Required</h3>
+      <p style="color:var(--text-muted);margin-bottom:20px;">Please log in to view your complaint history.</p>
+      <a href="/login.html" class="btn btn-primary">Login / Register →</a>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row" id="stats-row" style="display:none;">
+    <div class="stat-mini"><div class="stat-mini-val" id="st-total">0</div><div class="stat-mini-lbl">Total</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="st-open" style="color:var(--amber);">0</div><div class="stat-mini-lbl">Open</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="st-resolved" style="color:var(--green);">0</div><div class="stat-mini-lbl">Resolved</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="st-escalated" style="color:var(--red);">0</div><div class="stat-mini-lbl">Escalated</div></div>
+  </div>
+
+  <!-- Filter -->
+  <div id="filter-row" class="card" style="display:none;padding:14px 18px;margin-bottom:16px;">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);">Filter:</label>
+      <select id="filter-status" class="form-control" style="width:auto;min-width:160px;" onchange="applyFilter()">
+        <option value="">All Complaints</option>
+        <option value="SUBMITTED">Submitted</option>
+        <option value="ASSIGNED">Assigned</option>
+        <option value="IN_PROGRESS">In Progress</option>
+        <option value="RESOLVED">Resolved</option>
+        <option value="ESCALATED">Escalated</option>
+      </select>
+      <span id="filter-count" style="font-size:.82rem;color:var(--text-muted);margin-left:auto;"></span>
+    </div>
+  </div>
+
+  <div id="alert-box" class="alert alert-error" style="display:none;"></div>
+  <div id="complaints-list"></div>
+
+  <!-- Pagination -->
+  <div id="pagination" style="display:flex;justify-content:center;gap:8px;margin-top:8px;"></div>
+</div>
+
+<footer>&copy; 2026 <span class="f-accent">CivicCMS</span></footer>
+
+<script src="/js/cms.js"></script>
+<script src="/js/lang.js"></script>
+<script src="/js/api.js"></script>
+<script>
+  const CATEGORY_ICONS = {
+    Road:'🛣️', Sanitation:'🗑️', Electricity:'⚡',
+    Water:'💧', 'Public Safety':'🚔', General:'📌'
+  };
+  const STATUS_COLORS = {
+    SUBMITTED:'var(--indigo)', ASSIGNED:'var(--sky)',
+    IN_PROGRESS:'var(--amber)', RESOLVED:'var(--green)',
+    ESCALATED:'var(--red)', DUPLICATE:'var(--text-muted)'
+  };
+
+  let allComplaints = [];
+  let currentPage  = 0;
+
+  window.addEventListener('DOMContentLoaded', () => {
+    LangManager.injectSwitcher();
+    LangManager.applyNav();
+    applyLang();
+
+    if (!API.isLogged()) {
+      document.getElementById('login-prompt').style.display = 'block';
+      applyLangLoginPrompt();
+      return;
+    }
+    loadHistory();
+  });
+
+  function applyLang() {
+    const L = LangManager.current().history;
+    const setT = (id, txt) => { const el=document.getElementById(id); if(el && txt) el.textContent=txt; };
+    setT('pg-title', L.title);
+    setT('pg-sub',   L.sub);
+  }
+
+  function applyLangLoginPrompt() {
+    const L = LangManager.current().history;
+    const el = document.getElementById('login-prompt');
+    if (el && L) {
+      el.innerHTML = `
+        <div style="text-align:center;padding:40px 20px;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
+          <h3 style="font-family:var(--font-head);font-size:1.2rem;font-weight:800;margin-bottom:8px;">${L.loginPromptTitle}</h3>
+          <p style="color:var(--text-muted);margin-bottom:20px;">${L.loginPromptSub}</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <a href="/login.html" class="btn btn-primary">${L.btnLogin}</a>
+            <a href="/register.html" class="btn btn-outline">${L.btnRegister}</a>
+          </div>
+        </div>`;
+    }
+  }
+
+  async function loadHistory(page = 0) {
+    currentPage = page;
+    try {
+      // Backend returns a flat list from /mine (not paginated)
+      const data = await API.get('/api/v1/complaints/mine');
+      // data is a plain array
+      allComplaints = Array.isArray(data) ? data : (data.content || []);
+      buildStats(allComplaints);
+      document.getElementById('stats-row').style.display = 'grid';
+      document.getElementById('filter-row').style.display = 'block';
+      applyFilter();
+      // Client-side pagination since backend returns full list
+      renderPagination(Math.ceil(allComplaints.length / 20) || 1, page);
+    } catch(e) {
+      if (e.status === 401) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+      } else {
+        showAlert('alert-box', LangManager.current().history.loadError);
+      }
+    }
+  }
+
+  function buildStats(list) {
+    document.getElementById('st-total').textContent     = list.length;
+    document.getElementById('st-open').textContent      = list.filter(c => !['RESOLVED','ESCALATED','DUPLICATE'].includes(c.status)).length;
+    document.getElementById('st-resolved').textContent  = list.filter(c => c.status === 'RESOLVED').length;
+    document.getElementById('st-escalated').textContent = list.filter(c => c.status === 'ESCALATED').length;
+  }
+
+  function applyFilter() {
+    const filter = document.getElementById('filter-status').value;
+    const filtered = filter ? allComplaints.filter(c => c.status === filter) : allComplaints;
+    document.getElementById('filter-count').textContent = filtered.length + ' complaint' + (filtered.length !== 1 ? 's' : '');
+    renderList(filtered);
+  }
+
+  function renderList(list) {
+    const container = document.getElementById('complaints-list');
+    if (!list.length) {
+      const HL = LangManager.current().history;
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">${HL.noComplaints}</div>
+          <p style="margin-bottom:20px;">${HL.noComplaintsSub}</p>
+          <a href="/submit.html" class="btn btn-primary">${HL.btnSubmit}</a>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = list.map((c, i) => {
+      const icon      = CATEGORY_ICONS[c.category] || '📌';
+      const sColor    = STATUS_COLORS[c.status] || 'var(--text-muted)';
+      const isOverdue = c.dueDate && new Date(c.dueDate) < new Date() && c.status !== 'RESOLVED';
+      const isResolved= c.status === 'RESOLVED';
+      const iconBg    = isResolved ? 'var(--green-lt)' : isOverdue ? 'var(--red-lt)' : 'var(--indigo-lt)';
+
+      return `
+        <div class="complaint-card reveal" style="transition-delay:${i * 0.05}s;">
+          <div class="cc-icon" style="background:${iconBg};">${icon}</div>
+          <div class="cc-body">
+            <div class="cc-title" title="${c.title}">
+              <span style="font-family:var(--font-mono);color:var(--indigo);font-size:.82rem;">CMP-${c.id}</span>
+              &nbsp;${c.title}
+            </div>
+            <div class="cc-meta">
+              <span>📁 ${c.category}</span>
+              <span>📅 ${fmtDate(c.createdAt)}</span>
+              ${c.submittedByName ? `<span>👤 ${c.submittedByName}</span>` : ''}
+              ${c.assignedDeptName ? `<span>🏢 ${c.assignedDeptName}</span>` : ''}
+              ${isOverdue ? `<span style="color:var(--red);font-weight:700;">${LangManager.current().history.overdue}</span>` : ''}
+            </div>
+            <div class="cc-footer">
+              ${priorityBadge(c.priority)}
+              ${statusBadge(c.status)}
+              <div style="margin-left:auto;display:flex;gap:8px;">
+                <a href="/track.html?id=${c.id}" class="btn btn-sm btn-outline">${LangManager.current().history.track}</a>
+                ${isResolved ? `<a href="/rate.html?id=${c.id}" class="btn btn-sm btn-primary">${LangManager.current().history.rate}</a>` : ''}
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Trigger scroll reveal
+    setTimeout(() => {
+      document.querySelectorAll('.complaint-card.reveal').forEach(el => {
+        el.classList.add('in');
+      });
+    }, 30);
+  }
+
+  function renderPagination(total, current) {
+    const div = document.getElementById('pagination');
+    if (total <= 1) { div.innerHTML = ''; return; }
+    let html = '';
+    for (let i = 0; i < total; i++) {
+      html += `<button class="btn btn-sm ${i === current ? 'btn-primary' : 'btn-outline'}"
+               onclick="loadHistory(${i})">${i + 1}</button>`;
+    }
+    div.innerHTML = html;
+  }
+</script>
+<script src="/js/animations.js"></script>
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>/* Prevent flash of wrong theme */
+    (function(){var t=localStorage.getItem('civicTheme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Submit Complaint — CivicCMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand"><div class="brand-icon">C</div><span><span class="brand-accent">Civic</span>CMS</span></div>
+        <div class="navbar-links">
+    <a href="/index.html" id="nav-home">Home</a>
+    <a href="/chatbot.html" id="nav-chatbot">🤖 AI Chatbot</a>
+    <a href="/submit.html" id="nav-submit">Submit</a>
+    <a href="/track.html" id="nav-track">Track</a>
+    <a href="/history.html" id="nav-my">My Complaints</a>
+    <a href="/feedback-wall.html" id="nav-reviews">💬 Reviews</a>
+  </div>
+  <!-- Settings Gear -->
+    <div id="civic-settings-wrap" style="display:flex;align-items:center;gap:8px;">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="CivicTheme.toggle()" title="Toggle theme">🌙</button>
+    <button id="civic-gear-btn" onclick="LangManager.toggleSettings(event)" title="Settings">⚙️</button>
+    <div id="civic-settings-panel">
+      <div class="settings-section-title">🎨 Theme</div>
+      <button class="theme-option" id="theme-opt-light" onclick="CivicTheme.set('light');LangManager.toggleSettings(event)"><span>☀️</span><span>Light</span><span class="lang-check" id="tchk-light"></span></button>
+      <button class="theme-option" id="theme-opt-dark" onclick="CivicTheme.set('dark');LangManager.toggleSettings(event)"><span>🌙</span><span>Dark</span><span class="lang-check" id="tchk-dark"></span></button>
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">🌐 Language</div>
+      <button class="lang-option" id="langopt-en" onclick="LangManager.switchTo('en')"><span>🇬🇧</span><span>English</span><span class="lang-check" id="lcheck-en"></span></button>
+      <button class="lang-option" id="langopt-ta" onclick="LangManager.switchTo('ta')"><span>🇮🇳</span><span>தமிழ்</span><span class="lang-check" id="lcheck-ta"></span></button>
+      <button class="lang-option" id="langopt-hi" onclick="LangManager.switchTo('hi')"><span>🇮🇳</span><span>हिंदी</span><span class="lang-check" id="lcheck-hi"></span></button>
+      <div class="settings-divider"></div>
+      <button class="logout-option" onclick="LangManager.doLogout()"><span>🚪</span><span id="settings-logout-text">Logout</span></button>
+    </div>
+  </div>
+</nav>
+<div id="spinner" class="spinner-overlay hidden"><div class="spinner"></div></div>
+<div class="container-sm">
+  <div class="page-header">
+    <h2 id="pg-title" data-cms-page="submit" data-cms-key="page.title">📨 Submit a Complaint</h2>
+    <p id="pg-sub" data-cms-page="submit" data-cms-key="page.subtitle">Fill in the details below. Our AI will classify and route it automatically.</p>
+  </div>
+  <div class="steps" id="step-bar">
+    <div class="step active" id="s1"><div class="step-dot">1</div><div class="step-label" id="sl1">Details</div></div>
+    <div class="step" id="s2"><div class="step-dot">2</div><div class="step-label" id="sl2">Location</div></div>
+    <div class="step" id="s3"><div class="step-dot">3</div><div class="step-label" id="sl3">Photo</div></div>
+    <div class="step" id="s4"><div class="step-dot">4</div><div class="step-label" id="sl4">Review</div></div>
+  </div>
+  <div id="alert-box" class="alert alert-error" style="display:none;"></div>
+  <!-- ── AI Pre-fill Banner ──────────────────────────────────── -->
+  <div id="ai-prefill-banner" style="display:none;background:linear-gradient(135deg,#EEF2FF,#F5F3FF);
+    border:1.5px solid var(--indigo-mid);border-radius:var(--radius-lg);padding:14px 18px;
+    margin-bottom:18px;display:flex;align-items:center;gap:12px;">
+    <span style="font-size:1.5rem;">🤖</span>
+    <div style="flex:1;">
+      <div style="font-weight:800;font-size:.88rem;color:var(--indigo);">AI Pre-filled from Chatbot</div>
+      <div style="font-size:.78rem;color:var(--text-muted);">Category, description and urgency have been filled in automatically. Review and submit below.</div>
+    </div>
+    <a href="/chatbot.html" style="font-size:.78rem;color:var(--indigo);font-weight:700;">← Back to Chatbot</a>
+  </div>
+  <!-- STEP 1 -->
+  <div id="step-1" class="card fade-in">
+    <div class="card-title" id="step1-title">Step 1 — Complaint Details</div>
+
+    <!-- Logged-in user display -->
+    <div id="user-banner" style="display:none;background:var(--green-lt);border:1.5px solid var(--green-mid);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:1.1rem;">👤</span>
+      <div style="flex:1;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.05em;">Submitting as</div>
+        <div id="user-display-name" style="font-size:.88rem;font-weight:700;color:var(--text);"></div>
+      </div>
+    </div>
+
+    <div class="form-group"><label id="lbl-title">Title *</label><input id="title" type="text" class="form-control" placeholder="e.g. Large pothole on Main Street"></div>
+    <div class="form-group"><label id="lbl-cat">Category *</label>
+      <select id="category" class="form-control">
+        <option value="">— Select Category —</option>
+        <option value="ROAD">Roads</option>
+        <option value="GARBAGE">Sanitation</option>
+        <option value="ELECTRICITY">Electricity</option>
+        <option value="WATER">Water</option>
+        <option value="ANIMAL">Public Safety</option>
+        <option value="OTHER">General</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label id="lbl-desc">Description * <span id="char-count" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dim);">(0 / 20 min)</span>
+        <span id="voice-status" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--red);display:none;">🎙️ <span id="listening-text">Listening…</span></span>
+      </label>
+      <div style="position:relative;">
+        <textarea id="description" class="form-control" rows="4"
+          placeholder="Describe the issue in detail — minimum 20 characters"
+          style="padding-right:48px;"></textarea>
+        <button type="button" id="voice-btn" onclick="toggleVoice()"
+          title="Click to speak"
+          style="position:absolute;right:10px;top:10px;width:34px;height:34px;
+            border-radius:50%;border:1.5px solid var(--border-2);background:var(--surface);
+            cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;
+            transition:all .2s;box-shadow:var(--shadow-xs);">🎙️</button>
+      </div>
+      <div style="font-size:.75rem;color:var(--text-dim);margin-top:4px;" id="voice-tip">
+        💡 Tip: Click 🎙️ to speak your complaint instead of typing
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;"><button class="btn btn-primary" id="btn-next1" onclick="nextStep(1)">Next →</button></div>
+  </div>
+  <!-- STEP 2 -->
+  <div id="step-2" class="card" style="display:none;">
+    <div class="card-title" id="step2-title">Step 2 — Location</div>
+    <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px;" id="map-hint">Click on the map to drop a pin at the complaint location.</p>
+    <div id="map" style="width:100%;height:320px;border-radius:8px;border:1.5px solid #e2e8f0;"></div>
+    <div class="form-group" style="margin-top:14px;"><label id="lbl-addr">Address</label><input id="address" type="text" class="form-control" placeholder="Auto-filled when you drop a pin" readonly></div>
+    <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" id="btn-location" onclick="useMyLocation()">🌍 Use My Location</button>
+      <span style="font-size:.8rem;color:var(--text-muted);">or search:</span>
+      <div style="display:flex;flex:1;gap:6px;min-width:200px;">
+        <input id="addr-search" type="text" class="form-control" style="font-size:.85rem;padding:6px 10px;"
+          placeholder="Search address e.g. Anna Nagar, Chennai"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();searchAddress();}">
+        <button class="btn btn-outline btn-sm" onclick="searchAddress()">🔍</button>
+      </div>
+    </div>
+    <input type="hidden" id="lat"><input type="hidden" id="lng">
+    <div style="display:flex;justify-content:space-between;"><button class="btn btn-outline" id="btn-back2" onclick="prevStep(2)">← Back</button><button class="btn btn-primary" id="btn-next2" onclick="nextStep(2)">Next →</button></div>
+  </div>
+  <!-- STEP 3 -->
+  <div id="step-3" class="card" style="display:none;">
+    <div class="card-title" id="step3-title">Step 3 — Photo <span style="font-weight:400;color:var(--text-muted);font-size:.82rem;" id="optional-text">(Optional)</span></div>
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('photo-input').click()">
+      <div id="dz-text"><div style="font-size:2.4rem;margin-bottom:10px;">📷</div><p style="font-size:.88rem;" id="dz-label">Click or drag &amp; drop a photo</p><p style="font-size:.75rem;margin-top:4px;color:var(--text-dim);">JPG/PNG, max 5 MB</p></div>
+      <img id="preview" style="display:none;">
+    </div>
+    <input type="file" id="photo-input" accept="image/jpeg,image/png" style="display:none;">
+    <div style="display:flex;justify-content:space-between;margin-top:14px;"><button class="btn btn-outline" id="btn-back3" onclick="prevStep(3)">← Back</button><button class="btn btn-primary" id="btn-next3" onclick="nextStep(3)">Next →</button></div>
+  </div>
+  <!-- STEP 4 -->
+  <div id="step-4" class="card" style="display:none;">
+    <div class="card-title" id="step4-title">Step 4 — Review &amp; Submit</div>
+    <div id="review-box" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:18px;"></div>
+    <div style="display:flex;justify-content:space-between;"><button class="btn btn-outline" id="btn-back4" onclick="prevStep(4)">← Back</button><button class="btn btn-success" id="submit-btn" onclick="submitComplaint()">✅ Submit Complaint</button></div>
+  </div>
+  <!-- SUCCESS -->
+  <div id="success-box" class="card" style="display:none;text-align:center;padding:48px 28px;">
+    <div style="font-size:3.5rem;margin-bottom:12px;">🎉</div>
+    <h3 style="font-family:var(--font-head);font-size:1.5rem;font-weight:800;color:var(--green);margin-bottom:10px;" id="success-title">Complaint Submitted!</h3>
+    <p style="color:var(--text-muted);margin-bottom:18px;" id="success-id-label">Your Complaint ID is:</p>
+    <div id="complaint-id-box" style="background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid);font-family:var(--font-mono);font-size:1.8rem;font-weight:700;padding:18px;border-radius:var(--radius-lg);margin-bottom:18px;letter-spacing:2px;"></div>
+    <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:22px;" id="success-note">Save this ID to track your complaint.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-outline" id="btn-copy" onclick="copyId()">📋 Copy ID</button>
+      <a id="track-link" href="#" class="btn btn-primary">🔍 Track This Complaint</a>
+      <a href="/submit.html" class="btn btn-outline" id="btn-another">Submit Another</a>
+    </div>
+  </div>
+</div>
+<footer>&copy; 2026 <span class="f-accent">CivicCMS</span></footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/js/cms.js"></script>
+<script src="/js/lang.js"></script>
+<script src="/js/api.js"></script>
+<script>
+  let currentStep=1, map, marker, photoFile=null, submittedId=null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    LangManager.injectSwitcher();
+    applyLang();
+    // Load logged-in user info for display
+    if (API.isLogged()) {
+      const name  = localStorage.getItem('name')  || '';
+      const email = localStorage.getItem('email') || '';
+      if (name || email) {
+        const banner = document.getElementById('user-banner');
+        const nameEl = document.getElementById('user-display-name');
+        if (banner) banner.style.display = 'flex';
+        if (nameEl) nameEl.textContent = name + (email ? '  (' + email + ')' : '');
+      }
+    }
+    document.getElementById('description').addEventListener('input', function(){
+      const n=this.value.length;
+      const el=document.getElementById('char-count');
+      if(el){ el.textContent=`(${n} / 20 min)`; el.style.color=n>=20?'var(--green)':'var(--text-dim)'; }
+    });
+    const dz=document.getElementById('dropzone'), input=document.getElementById('photo-input');
+    input.addEventListener('change',e=>handleFile(e.target.files[0]));
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);});
+  });
+
+  function applyLang() {
+    LangManager.applyNav();
+    const L = LangManager.current();
+    const s = L.submit;
+    document.getElementById('pg-title').textContent = s.title;
+    document.getElementById('pg-sub').textContent = s.sub;
+    s.steps.forEach((lbl,i) => { const el=document.getElementById('sl'+(i+1)); if(el) el.textContent=lbl; });
+    document.getElementById('step1-title').textContent = s.step1;
+    document.getElementById('step2-title').textContent = s.step2;
+    document.getElementById('step3-title').textContent = s.step3;
+    document.getElementById('step4-title').textContent = s.step4;
+    document.getElementById('lbl-title').textContent = s.lblTitle;
+    document.getElementById('lbl-cat').textContent = s.lblCat;
+    document.getElementById('lbl-desc').innerHTML = s.lblDesc + ' <span id="char-count" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dim);">(0 / 20 min)</span> <span id="voice-status" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--red);display:none;">🎙️ <span id="listening-text">' + s.listeningText + '</span></span>';
+    document.getElementById('lbl-addr').textContent = s.lblAddr;
+    document.getElementById('title').placeholder = s.titlePh;
+    document.getElementById('description').placeholder = s.descPh;
+    const sel = document.getElementById('category');
+    sel.options[0].text = s.catDefault;
+    s.cats.forEach((cat,i) => { if(sel.options[i+1]) sel.options[i+1].text = cat; });
+    document.getElementById('map-hint').textContent = s.mapHint;
+    document.getElementById('btn-location').textContent = s.btnLocation;
+    document.getElementById('btn-next1').textContent = s.btnNext;
+    document.getElementById('btn-next2').textContent = s.btnNext;
+    document.getElementById('btn-next3').textContent = s.btnNext;
+    document.getElementById('btn-back2').textContent = s.btnBack;
+    document.getElementById('btn-back3').textContent = s.btnBack;
+    document.getElementById('btn-back4').textContent = s.btnBack;
+    document.getElementById('submit-btn').textContent = s.btnSubmit;
+    document.getElementById('optional-text').textContent = s.optional;
+    document.getElementById('dz-label').textContent = s.dzLabel;
+    document.getElementById('voice-tip').textContent = s.voiceTip;
+    document.getElementById('success-title').textContent = s.successTitle;
+    document.getElementById('success-id-label').textContent = s.successIdLabel;
+    document.getElementById('success-note').textContent = s.successNote;
+    document.getElementById('btn-copy').textContent = s.btnCopy;
+    document.getElementById('btn-another').textContent = s.btnAnother;
+    document.getElementById('track-link').textContent = s.btnTrack;
+  }
+
+  function showStep(n){
+    [1,2,3,4].forEach(i=>{
+      document.getElementById('step-'+i).style.display = i===n ? 'block' : 'none';
+      const sd = document.getElementById('s'+i);
+      sd.classList.toggle('active', i===n);
+      sd.classList.toggle('done', i<n);
+    });
+    currentStep = n;
+    hideAlert('alert-box');
+    if(n===4) buildReview();
+    if(n===2){
+      // Wait for step-2 to fully paint before Leaflet measures the container.
+      // setTimeout(300) is more reliable than rAF for display:none → display:block transitions.
+      if(!map){
+        setTimeout(() => { initMap(); map.invalidateSize(); }, 300);
+      } else {
+        setTimeout(() => { map.invalidateSize(); }, 100);
+      }
+    }
+  }
+  function nextStep(from){ if(!validate(from)) return; showStep(from+1); }
+  function prevStep(from){ showStep(from-1); }
+  function validate(step){
+    const s = LangManager.current().submit;
+    if(step===1){
+      if(!document.getElementById('title').value.trim()) return showAlert('alert-box',s.validTitle),false;
+      if(!document.getElementById('category').value) return showAlert('alert-box',s.validCat),false;
+      if(document.getElementById('description').value.trim().length<20) return showAlert('alert-box',s.validDesc),false;
+    }
+    if(step===2&&!document.getElementById('lat').value){
+      showAlert('alert-box', LangManager.current().submit.validLoc);
+      return false;
+    }
+    return true;
+  }
+  function initMap(){
+    map = L.map('map', { zoomControl: true }).setView([13.0827, 80.2707], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+    map.on('click', placeMarker);
+  }
+  function placeMarker(e){ const{lat,lng}=e.latlng; if(marker) map.removeLayer(marker); marker=L.marker([lat,lng]).addTo(map); document.getElementById('lat').value=lat; document.getElementById('lng').value=lng; reverseGeocode(lat,lng); }
+  function reverseGeocode(lat,lng){ fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`).then(r=>r.json()).then(d=>{ document.getElementById('address').value=d.display_name||''; }).catch(()=>{}); }
+  function useMyLocation(){
+    const SL = LangManager.current().submit;
+    function showManualFallback(reason) {
+      showAlert('alert-box', reason);
+    }
+    if(!navigator.geolocation) return showManualFallback('⚠️ Your browser does not support Geolocation.');
+    // Guard: map may still be initialising (300ms delay). Wait for it.
+    if(!map){
+      showAlert('alert-box', '⏳ Map is loading, please wait a moment then try again.');
+      return;
+    }
+    const btn = document.getElementById('btn-location');
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Getting location…'; }
+    navigator.geolocation.getCurrentPosition(
+      pos=>{
+        const{latitude:lat,longitude:lng}=pos.coords;
+        map.setView([lat,lng],16);
+        placeMarker({latlng:{lat,lng}});
+        hideAlert('alert-box');
+        if(btn){ btn.disabled=false; btn.textContent=SL.btnLocation||'🌍 Use My Location'; }
+      },
+      err=>{
+        if(btn){ btn.disabled=false; btn.textContent=SL.btnLocation||'🌍 Use My Location'; }
+        let msg;
+        switch(err.code){
+          case 1: msg=SL.locDenied||'🔒 Location permission denied. Click the 🔒 lock icon in the address bar → Allow Location, then refresh.'; break;
+          case 2: msg=SL.locUnavail||'📡 Location unavailable (common on localhost). Click the map or search an address instead.'; break;
+          case 3: msg=SL.locTimeout||'⏱️ Location timed out. Try again or click the map.'; break;
+          default: msg='❌ Location error: ' + err.message;
+        }
+        showManualFallback(msg);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+  function searchAddress(){
+    const q = document.getElementById('addr-search').value.trim();
+    if(!q) return;
+    // Guard: map must be ready
+    if(!map){
+      showAlert('alert-box', '⏳ Map is loading, please wait a moment then try again.');
+      return;
+    }
+    const SL = LangManager.current().submit;
+    const searchBtn = document.querySelector('#step-2 button[onclick="searchAddress()"]');
+    if(searchBtn){ searchBtn.disabled=true; searchBtn.textContent='⏳'; }
+    hideAlert('alert-box');
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&countrycodes=in`)
+      .then(r=>r.json())
+      .then(results=>{
+        if(searchBtn){ searchBtn.disabled=false; searchBtn.textContent='🔍'; }
+        if(!results || results.length===0){
+          showAlert('alert-box', SL.addrNotFound||'❌ Address not found. Try a different search or click the map.');
+          return;
+        }
+        // Pick best result
+        const r = results[0];
+        const lat = parseFloat(r.lat), lng = parseFloat(r.lon);
+        map.setView([lat, lng], 16);
+        placeMarker({latlng:{lat, lng}});
+        hideAlert('alert-box');
+        // Show what was found in address box immediately
+        document.getElementById('address').value = r.display_name || '';
+      })
+      .catch(()=>{
+        if(searchBtn){ searchBtn.disabled=false; searchBtn.textContent='🔍'; }
+        showAlert('alert-box', SL.addrFail||'❌ Search failed. Check your connection or click the map.');
+      });
+  }
+
+  function handleFile(file){ if(!file) return; if(!['image/jpeg','image/png'].includes(file.type)) return showAlert('alert-box','Only JPG and PNG files allowed'); if(file.size>5*1024*1024) return showAlert('alert-box','File must be under 5 MB'); photoFile=file; const reader=new FileReader(); reader.onload=e=>{ document.getElementById('preview').src=e.target.result; document.getElementById('preview').style.display='block'; document.getElementById('dz-text').style.display='none'; }; reader.readAsDataURL(file); }
+  function buildReview(){
+    const s = LangManager.current().submit;
+    const userName = localStorage.getItem('name') || document.getElementById('user-display-name')?.textContent || 'Anonymous';
+    const rows=[
+      ['Submitted By', userName],
+      [s.lblTitle.replace(' *',''),document.getElementById('title').value],
+      [s.lblCat.replace(' *',''),document.getElementById('category').value],
+      [s.lblDesc.replace(' *',''),document.getElementById('description').value],
+      [s.lblAddr,document.getElementById('address').value||'(map pin set)'],
+      ['Photo',photoFile?photoFile.name:'No photo']
+    ];
+    document.getElementById('review-box').innerHTML=rows.map(([k,v],i)=>`<div style="display:flex;gap:12px;padding:10px 14px;${i%2===0?'background:var(--surface2);':''}"><span style="font-family:var(--font);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);width:110px;flex-shrink:0;">${k}</span><span style="color:var(--text);font-size:.88rem;">${v}</span></div>`).join('');
+  }
+  async function submitComplaint(){
+    const s = LangManager.current().submit;
+    if(!API.isLogged()) return showAlert('alert-box', LangManager.current().submit.loginRequired);
+    const btn=document.getElementById('submit-btn'); btn.disabled=true; showSpinner();
+    const fd=new FormData(); fd.append('title',document.getElementById('title').value.trim()); fd.append('description',document.getElementById('description').value.trim()); fd.append('category',document.getElementById('category').value); fd.append('lat',document.getElementById('lat').value); fd.append('lng',document.getElementById('lng').value); fd.append('address',document.getElementById('address').value); if(photoFile) fd.append('photo',photoFile);
+    try{ const data=await API.postForm('/api/v1/complaints',fd); submittedId=data.id; document.getElementById('step-4').style.display='none'; document.getElementById('step-bar').style.display='none'; document.getElementById('success-box').style.display='block'; document.getElementById('complaint-id-box').textContent='CMP-'+data.id; document.getElementById('track-link').href='/track.html?id='+data.id; }
+    catch(e){ showAlert('alert-box',e.message||'Submission failed.'); btn.disabled=false; }
+    finally{ hideSpinner(); }
+  }
+  function copyId(){ navigator.clipboard.writeText('CMP-'+submittedId).catch(()=>{}); }
+
+  /* ── Voice Input ── */
+  let recognition=null, isListening=false;
+
+  function toggleVoice(){
+    if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window))
+      return showAlert('alert-box','⚠️ Voice input requires Chrome browser.');
+    isListening ? stopVoice() : startVoice();
+  }
+
+  function startVoice(){
+    const voiceCode = LangManager.current().voiceCode;
+
+    // CRITICAL: Set html lang attribute to force correct script output
+    // Without this, Chrome returns Tanglish even for ta-IN
+    document.documentElement.lang = voiceCode.split('-')[0]; // 'ta', 'hi', 'en'
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+
+    // Set lang BEFORE anything else
+    recognition.lang = voiceCode;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isListening = true;
+      const b = document.getElementById('voice-btn');
+      b.style.background = 'var(--red)';
+      b.style.borderColor = 'var(--red)';
+      b.style.color = '#fff';
+      b.textContent = '⏹️';
+      const vs = document.getElementById('voice-status');
+      if(vs) vs.style.display = 'inline';
+    };
+
+    recognition.onresult = (e) => {
+      let interim = '', final = '';
+      for(let i = e.resultIndex; i < e.results.length; i++){
+        const t = e.results[i][0].transcript;
+        if(e.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      const d = document.getElementById('description');
+      const base = d.dataset.base || '';
+      // Show final + interim
+      d.value = base + final + interim;
+      // Save final part as base
+      if(final) d.dataset.base = base + final;
+      d.dispatchEvent(new Event('input'));
+    };
+
+    recognition.onerror = (e) => {
+      if(e.error === 'no-speech') return;
+      stopVoice();
+      if(e.error === 'not-allowed' || e.error === 'permission-denied') {
+        showAlert('alert-box','🎙️ Microphone access blocked. Click the 🔒 lock icon in the address bar → Site settings → Allow Microphone, then refresh and try again.');
+      } else if(e.error === 'network') {
+        showAlert('alert-box','🎙️ Voice recognition needs an internet connection. Please check your network and try again.');
+      } else {
+        showAlert('alert-box','🎙️ Voice error: ' + e.error + '. Please try again.');
+      }
+    };
+
+    recognition.onend = () => {
+      if(isListening) {
+        // Restart with same lang to keep listening
+        try { recognition.start(); } catch(ex){}
+      }
+    };
+
+    // Small delay ensures lang setting is applied properly
+    setTimeout(() => { try { recognition.start(); } catch(ex){} }, 100);
+  }
+
+  function stopVoice(){
+    isListening = false;
+    if(recognition){ recognition.onend = null; try { recognition.stop(); } catch(ex){} }
+    const b = document.getElementById('voice-btn');
+    b.style.background = 'var(--surface)';
+    b.style.borderColor = 'var(--border-2)';
+    b.style.color = '';
+    b.textContent = '🎙️';
+    const vs = document.getElementById('voice-status');
+    if(vs) vs.style.display = 'none';
+    const d = document.getElementById('description');
+    d.dataset.base = d.value;
+    // Restore html lang
+    document.documentElement.lang = LangManager.current().code;
+  }
+</script>
+<script src="/js/animations.js"></script>
+
+  <!-- ── AI Pre-fill from URL params (set by chatbot) ─────────── -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const aiTitle = params.get('title');
+      const aiDesc  = params.get('desc');
+      const aiCat   = params.get('cat');
+      if (aiTitle || aiDesc || aiCat) {
+        // Show banner
+        const banner = document.getElementById('ai-prefill-banner');
+        if (banner) { banner.style.display = 'flex'; }
+        // Pre-fill fields
+        if (aiTitle) {
+          const t = document.getElementById('title');
+          if (t) t.value = decodeURIComponent(aiTitle);
+        }
+        if (aiDesc) {
+          const d = document.getElementById('description');
+          if (d) { d.value = decodeURIComponent(aiDesc); d.dispatchEvent(new Event('input')); }
+        }
+        if (aiCat) {
+          const c = document.getElementById('category');
+          if (c) {
+            const cat = decodeURIComponent(aiCat).toUpperCase();
+            // Map AI category to form options
+            // Map AI-detected category code to form option values
+            const catMap = {WATER:'WATER',ELECTRICITY:'ELECTRICITY',ROAD:'ROAD',
+              GARBAGE:'GARBAGE',DRAINAGE:'GARBAGE',STREETLIGHT:'ELECTRICITY',
+              PARK:'OTHER',NOISE:'ANIMAL',ENCROACHMENT:'ANIMAL',ANIMAL:'ANIMAL'};
+            const mapped = catMap[cat] || 'OTHER';
+            for (let i = 0; i < c.options.length; i++) {
+              if (c.options[i].value === mapped) {
+                c.selectedIndex = i; break;
+              }
+            }
+          }
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>

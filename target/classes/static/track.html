@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>/* Prevent flash of wrong theme */
+    (function(){var t=localStorage.getItem('civicTheme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Track Complaint — CivicCMS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    #complaint-map { width:100%; height:220px; border-radius:var(--radius); border:1.5px solid var(--border); margin-top:12px; }
+  </style>
+  <style>
+    /* ── ETA Widget ─────────────────────────────────── */
+    .eta-box {
+      display:flex; align-items:center; gap:14px;
+      background:var(--indigo-lt); border:1px solid var(--indigo-mid);
+      border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:20px;
+    }
+    .eta-box.overdue {
+      background:var(--red-lt); border-color:var(--red-mid);
+    }
+    .eta-box.resolved {
+      background:var(--green-lt); border-color:var(--green-mid);
+    }
+    .eta-icon { font-size:2rem; flex-shrink:0; }
+    .eta-label {
+      font-size:.72rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.6px; color:var(--text-muted);
+      font-family:var(--font); margin-bottom:3px;
+    }
+    .eta-value {
+      font-family:var(--font-head); font-size:1.35rem;
+      font-weight:800; color:var(--indigo); letter-spacing:-.3px;
+    }
+    .eta-box.overdue  .eta-value { color:var(--red); }
+    .eta-box.resolved .eta-value { color:var(--green); }
+    .eta-sub {
+      font-size:.78rem; color:var(--text-muted);
+      font-family:var(--font-mono); margin-top:2px;
+    }
+    /* countdown segments */
+    .eta-segments {
+      display:flex; gap:8px; margin-left:auto; flex-shrink:0;
+    }
+    .eta-seg {
+      text-align:center; background:white;
+      border:1px solid var(--border); border-radius:var(--radius);
+      padding:6px 10px; min-width:52px;
+      box-shadow:var(--shadow-xs);
+    }
+    .eta-seg-val {
+      font-family:var(--font-head); font-size:1.1rem;
+      font-weight:800; color:var(--indigo); line-height:1;
+    }
+    .eta-box.overdue .eta-seg-val { color:var(--red); }
+    .eta-box.resolved .eta-seg-val { color:var(--green); }
+    .eta-seg-lbl {
+      font-size:.6rem; color:var(--text-muted);
+      text-transform:uppercase; letter-spacing:.4px;
+      margin-top:2px; font-weight:700;
+    }
+    /* progress bar */
+    .sla-bar-wrap {
+      margin-bottom:20px;
+    }
+    .sla-bar-header {
+      display:flex; justify-content:space-between;
+      font-size:.75rem; font-weight:600; color:var(--text-muted);
+      margin-bottom:5px; font-family:var(--font);
+    }
+    .sla-bar-track {
+      height:8px; background:var(--surface2);
+      border-radius:4px; overflow:hidden;
+      border:1px solid var(--border);
+    }
+    .sla-bar-fill {
+      height:100%; border-radius:4px;
+      background:linear-gradient(90deg, var(--indigo), var(--coral));
+      transition:width 1s cubic-bezier(.22,1,.36,1);
+    }
+    .sla-bar-fill.warning { background:linear-gradient(90deg, var(--amber), var(--coral)); }
+    .sla-bar-fill.danger  { background:var(--red); }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand"><div class="brand-icon">C</div><span><span class="brand-accent">Civic</span>CMS</span></div>
+        <div class="navbar-links">
+    <a href="/index.html" id="nav-home">Home</a>
+    <a href="/chatbot.html" id="nav-chatbot">🤖 AI Chatbot</a>
+    <a href="/submit.html" id="nav-submit">Submit</a>
+    <a href="/track.html" id="nav-track">Track</a>
+    <a href="/history.html" id="nav-my">My Complaints</a>
+    <a href="/feedback-wall.html" id="nav-reviews">💬 Reviews</a>
+  </div>
+  <!-- Settings Gear -->
+    <div id="civic-settings-wrap" style="display:flex;align-items:center;gap:8px;">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="CivicTheme.toggle()" title="Toggle theme">🌙</button>
+    <button id="civic-gear-btn" onclick="LangManager.toggleSettings(event)" title="Settings">⚙️</button>
+    <div id="civic-settings-panel">
+      <div class="settings-section-title">🎨 Theme</div>
+      <button class="theme-option" id="theme-opt-light" onclick="CivicTheme.set('light');LangManager.toggleSettings(event)"><span>☀️</span><span>Light</span><span class="lang-check" id="tchk-light"></span></button>
+      <button class="theme-option" id="theme-opt-dark" onclick="CivicTheme.set('dark');LangManager.toggleSettings(event)"><span>🌙</span><span>Dark</span><span class="lang-check" id="tchk-dark"></span></button>
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">🌐 Language</div>
+      <button class="lang-option" id="langopt-en" onclick="LangManager.switchTo('en')"><span>🇬🇧</span><span>English</span><span class="lang-check" id="lcheck-en"></span></button>
+      <button class="lang-option" id="langopt-ta" onclick="LangManager.switchTo('ta')"><span>🇮🇳</span><span>தமிழ்</span><span class="lang-check" id="lcheck-ta"></span></button>
+      <button class="lang-option" id="langopt-hi" onclick="LangManager.switchTo('hi')"><span>🇮🇳</span><span>हिंदी</span><span class="lang-check" id="lcheck-hi"></span></button>
+      <div class="settings-divider"></div>
+      <button class="logout-option" onclick="LangManager.doLogout()"><span>🚪</span><span id="settings-logout-text">Logout</span></button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-sm">
+  <div class="page-header">
+    <h2 id="pg-title" data-cms-page="track" data-cms-key="page.title">🔍 Track Your Complaint</h2>
+    <p id="pg-sub" data-cms-page="track" data-cms-key="page.subtitle">Enter your complaint ID to view real-time status and progress.</p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;gap:10px;">
+      <input id="cmp-id" type="text" class="form-control"
+             placeholder="Enter Complaint ID — e.g. 42" style="flex:1;">
+      <button class="btn btn-primary" id="track-btn" onclick="trackComplaint()">Track</button>
+    </div>
+  </div>
+
+  <div id="alert-box" class="alert alert-error" style="display:none;"></div>
+  <div id="result" style="display:none;"></div>
+</div>
+
+<footer>&copy; 2026 <span class="f-accent">CivicCMS</span></footer>
+
+<script src="/js/cms.js"></script>
+<script src="/js/lang.js"></script>
+<script src="/js/api.js"></script>
+<script>
+  let countdownTimer = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    LangManager.injectSwitcher();
+    const L = LangManager.current();
+    const tr = L.track;
+    LangManager.applyNav();
+    const setT = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+    setT('pg-title', tr.title); setT('pg-sub', tr.sub);
+    const inp = document.getElementById('cmp-id');
+    if(inp) inp.placeholder = tr.ph;
+    setT('track-btn', tr.btn);
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const id = new URLSearchParams(window.location.search).get('id');
+    if (id) { document.getElementById('cmp-id').value = id; trackComplaint(); }
+  });
+
+  async function trackComplaint() {
+    // Security: must be logged in to track complaints
+    if (!API.isLogged()) {
+      window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+      return;
+    }
+    const raw = document.getElementById('cmp-id').value.trim().replace('CMP-','');
+    if (!raw) return showAlert('alert-box', LangManager.current().track.e1);
+    hideAlert('alert-box');
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    try {
+      const d = await API.get('/api/v1/complaints/track/' + raw);
+      renderResult(d);
+    } catch(e) {
+      document.getElementById('result').style.display = 'none';
+      if (e.status === 401) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+      } else if (e.status === 403) {
+        showAlert('alert-box', 'Access denied. You can only track your own complaints.');
+      } else {
+        showAlert('alert-box', e.status===404
+          ? LangManager.current().track.e2
+          : LangManager.current().track.e3);
+      }
+    }
+  }
+
+  /* ── ETA helpers ─────────────────────────────────── */
+  function buildEtaHtml(d, TL) {
+    const isResolved  = d.status === 'RESOLVED';
+    const isEscalated = d.status === 'ESCALATED';
+
+    if (isResolved) {
+      return `<div class="eta-box resolved">
+        <div class="eta-icon">✅</div>
+        <div>
+          <div class="eta-label">${TL.resolutionStatus||'Resolution Status'}</div>
+          <div class="eta-value">${TL.complaintResolved||'Complaint Resolved'}</div>
+          <div class="eta-sub">${TL.resolvedOn||'Resolved on'} ${fmtDate(d.resolvedAt || d.dueDate)}</div>
+        </div>
+      </div>`;
+    }
+
+    if (!d.dueDate) return '';
+
+    const now     = new Date();
+    const due     = new Date(d.dueDate);
+    const created = new Date(d.createdAt);
+    const totalMs = due - created;
+    const leftMs  = due - now;
+    const elapsed = now - created;
+
+    const overdue = leftMs < 0;
+    const diffMs  = Math.abs(leftMs);
+
+    const days  = Math.floor(diffMs / 86400000);
+    const hours = Math.floor((diffMs % 86400000) / 3600000);
+    const mins  = Math.floor((diffMs % 3600000) / 60000);
+    const secs  = Math.floor((diffMs % 60000) / 1000);
+
+    // progress percentage (capped 0–100)
+    const pct = Math.min(100, Math.max(0, Math.round((elapsed / totalMs) * 100)));
+    const barClass = pct >= 90 ? 'danger' : pct >= 70 ? 'warning' : '';
+
+    const boxClass = overdue ? 'overdue' : isEscalated ? 'overdue' : '';
+    const icon     = overdue ? '⚠️' : isEscalated ? '🚨' : '⏱️';
+    const label    = overdue ? (TL.overdueBy||'Overdue by') : (TL.timeRemaining||'Time Remaining');
+    const subText  = overdue
+      ? `${TL.dueWas||'Due was'} ${fmtDate(d.dueDate)} — ${TL.slaBreach||'SLA breached'}`
+      : `Due: ${fmtDate(d.dueDate)}`;
+
+    return `
+      <div class="eta-box ${boxClass}" id="eta-box">
+        <div class="eta-icon">${icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="eta-label">${label}</div>
+          <div class="eta-value" id="eta-text">${days>0?days+'d ':''} ${hours}h ${mins}m ${secs}s</div>
+          <div class="eta-sub">${subText}</div>
+        </div>
+        <div class="eta-segments">
+          <div class="eta-seg"><div class="eta-seg-val" id="eta-d">${String(days).padStart(2,'0')}</div><div class="eta-seg-lbl">Days</div></div>
+          <div class="eta-seg"><div class="eta-seg-val" id="eta-h">${String(hours).padStart(2,'0')}</div><div class="eta-seg-lbl">Hrs</div></div>
+          <div class="eta-seg"><div class="eta-seg-val" id="eta-m">${String(mins).padStart(2,'0')}</div><div class="eta-seg-lbl">Min</div></div>
+          <div class="eta-seg"><div class="eta-seg-val" id="eta-s">${String(secs).padStart(2,'0')}</div><div class="eta-seg-lbl">Sec</div></div>
+        </div>
+      </div>
+      <div class="sla-bar-wrap">
+        <div class="sla-bar-header">
+          <span>Submitted</span>
+          <span style="color:${pct>=90?'var(--red)':pct>=70?'var(--amber)':'var(--indigo)'};">${pct}% ${TL.slaUsed||'of SLA used'}</span>
+          <span>Due</span>
+        </div>
+        <div class="sla-bar-track">
+          <div class="sla-bar-fill ${barClass}" id="sla-fill" style="width:${pct}%;"></div>
+        </div>
+      </div>`;
+  }
+
+  function startCountdown(dueDate, isOverdue) {
+    if (countdownTimer) clearInterval(countdownTimer);
+    if (isOverdue) return; // already overdue — no need to tick
+
+    countdownTimer = setInterval(() => {
+      const now   = new Date();
+      const due   = new Date(dueDate);
+      const leftMs = due - now;
+      if (leftMs <= 0) { clearInterval(countdownTimer); return; }
+
+      const days  = Math.floor(leftMs / 86400000);
+      const hours = Math.floor((leftMs % 86400000) / 3600000);
+      const mins  = Math.floor((leftMs % 3600000) / 60000);
+      const secs  = Math.floor((leftMs % 60000) / 1000);
+
+      const dEl = document.getElementById('eta-d');
+      const hEl = document.getElementById('eta-h');
+      const mEl = document.getElementById('eta-m');
+      const sEl = document.getElementById('eta-s');
+      const tEl = document.getElementById('eta-text');
+      if (!dEl) { clearInterval(countdownTimer); return; }
+
+      dEl.textContent = String(days).padStart(2,'0');
+      hEl.textContent = String(hours).padStart(2,'0');
+      mEl.textContent = String(mins).padStart(2,'0');
+      sEl.textContent = String(secs).padStart(2,'0');
+      if (tEl) tEl.textContent = (days>0?days+'d ':'')+hours+'h '+mins+'m '+secs+'s';
+    }, 1000);
+  }
+
+  /* ── Main render ─────────────────────────────────── */
+  function renderResult(d) {
+    const TL = LangManager.current().track;
+    const stages = [
+      { label: TL.stage1||'Submitted',         desc: TL.stage1d||'Complaint received by system' },
+      { label: TL.stage2||'AI Analysed',       desc: TL.stage2d||'Keywords, risk and priority assessed' },
+      { label: TL.stage3||'Assigned to Dept.', desc: (TL.stage3d||'Routed to ') + (d.assignedDeptName||'department') },
+      { label: TL.stage4||'In Progress',       desc: TL.stage4d||'Department is working on it' },
+      { label: TL.stage5||'Resolved',          desc: d.resolutionNote||(TL.stage5d||'Issue resolved') },
+      { label: TL.stage6||'Rated',             desc: TL.stage6d||'Citizen feedback submitted' },
+    ];
+    const current     = d.currentStage||1;
+    const isResolved  = d.status === 'RESOLVED';
+    const isEscalated = d.status === 'ESCALATED';
+    const isOverdue   = d.dueDate && new Date(d.dueDate) < new Date() && !isResolved;
+
+    const timelineHtml = stages.map((s,i) => {
+      const n = i+1;
+      const cls = n < current ? 'done' : n === current ? 'active' : 'pending';
+      return `<li class="${cls}">
+        <div class="timeline-label">${s.label}</div>
+        <div class="timeline-time">${cls!=='pending' ? s.desc : ''}</div>
+      </li>`;
+    }).join('');
+
+    const etaHtml = buildEtaHtml(d, TL);
+
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('result').innerHTML = `
+      <div class="card fade-in">
+
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+          <div>
+            <div style="font-family:var(--font-head);font-size:1.1rem;font-weight:800;color:var(--text);">
+              <span class="mono" style="color:var(--indigo)">CMP-${d.id}</span>: ${d.title}
+            </div>
+            <div style="font-size:.82rem;color:var(--text-muted);margin-top:5px;font-family:var(--font-mono);">
+              ${d.category} &nbsp;·&nbsp; Submitted: ${fmtDate(d.createdAt)}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">${priorityBadge(d.priority)} ${statusBadge(d.status)}</div>
+        </div>
+
+        ${isEscalated ? `<div class="alert alert-warning">⚠️ This complaint has been escalated due to SLA breach.</div>` : ''}
+
+        <!-- ETA + SLA bar -->
+        ${etaHtml}
+
+        <!-- Department / Due date grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+          <div>
+            <div style="font-size:.72rem;font-weight:700;font-family:var(--font);color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Department</div>
+            <div style="color:var(--text);">${d.assignedDeptName||(TL.pendingAssignment||'Pending assignment')}</div>
+          </div>
+          <div>
+            <div style="font-size:.72rem;font-weight:700;font-family:var(--font);color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">SLA Deadline</div>
+            <div style="color:${isOverdue?'var(--red)':'var(--text)'};font-family:var(--font-mono);font-weight:${isOverdue?'700':'400'};">${fmtDate(d.dueDate)}</div>
+          </div>
+        </div>
+
+        <!-- Location Map -->
+        ${(d.lat && d.lng && d.lat !== 0 && d.lng !== 0) ? `
+        <div style="margin-bottom:24px;">
+          <div style="font-size:.72rem;font-weight:700;font-family:var(--font);color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">${TL.locationTitle||'📍 Complaint Location'}</div>
+          ${d.address ? `<div style="font-size:.83rem;color:var(--text-muted);margin-bottom:8px;">` + d.address + `</div>` : ''}
+          <div id="complaint-map"></div>
+        </div>` : ''}
+
+        <!-- Timeline -->
+        <div class="card-title">${TL.progressTitle||'Complaint Progress'}</div>
+        <ul class="timeline" style="margin-top:8px;">${timelineHtml}</ul>
+
+        ${isResolved ? `
+          <div class="alert alert-success" style="margin-top:20px;flex-direction:column;align-items:start;gap:10px;">
+            <strong>${TL.resolutionNote||'✅ Resolution Note:'}</strong>
+            <span>${d.resolutionNote||'Resolved by department.'}</span>
+            <a href="/rate.html?id=${d.id}" class="btn btn-sm btn-primary">${TL.btnRate||'⭐ Rate this Resolution'}</a>
+          </div>` : ''}
+      </div>`;
+
+    // Init location map if coordinates exist
+    if (d.lat && d.lng && d.lat !== 0 && d.lng !== 0) {
+      // Use rAF chain so innerHTML has fully painted before Leaflet measures the container
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const mapEl = document.getElementById('complaint-map');
+          if (!mapEl) return;
+          // Remove any previous Leaflet instance on this element to avoid "already initialized" crash
+          if (mapEl._leaflet_id) {
+            mapEl._leaflet_id = null;
+            mapEl.innerHTML = '';
+          }
+          const cmap = L.map('complaint-map', { zoomControl: true, scrollWheelZoom: false })
+                        .setView([d.lat, d.lng], 16);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            { attribution: '&copy; OpenStreetMap contributors' }).addTo(cmap);
+          L.marker([d.lat, d.lng])
+            .addTo(cmap)
+            .bindPopup(`<b>CMP-${d.id}</b><br>${d.title}`)
+            .openPopup();
+          // Safety re-measure after tiles begin loading
+          setTimeout(() => { cmap.invalidateSize(); }, 300);
+        });
+      });
+    }
+
+    // Start live countdown only for active unresolved complaints
+    if (!isResolved && d.dueDate && !isOverdue) {
+      startCountdown(d.dueDate, false);
+    }
+  }
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/js/animations.js"></script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — CivicCMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080810;
+      --surface: rgba(255,255,255,0.035);
+      --surface-hover: rgba(255,255,255,0.065);
+      --border: rgba(255,255,255,0.09);
+      --border-focus: rgba(255,255,255,0.28);
+      --text: #eeedf5;
+      --muted: #7b7a90;
+      --dim: #3e3d52;
+      --btn-bg: #f0effe;
+      --btn-text: #0d0c18;
+      --font: 'DM Sans', sans-serif;
+      --font-head: 'Syne', sans-serif;
+      --r: 12px;
+      --r-pill: 100px;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      position: relative;
+      background-color: var(--bg);
+      background-image: radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+    .page::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 75% 55% at 50% 50%, transparent 35%, var(--bg) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 440px;
+      background: rgba(12,11,22,0.92);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 36px 30px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+      backdrop-filter: blur(20px);
+      animation: rise .5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes rise {
+      from { opacity:0; transform:translateY(32px) scale(.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .logo-text {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+
+    /* Heading */
+    .head {
+      text-align: center;
+      margin-bottom: 26px;
+    }
+    .head h1 {
+      font-family: var(--font-head);
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+    .head p { font-size: .84rem; color: var(--muted); }
+
+    /* Progress dots */
+    .progress {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+    .p-dot {
+      width: 28px; height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.1);
+      transition: background .3s, width .3s;
+    }
+    .p-dot.active { background: rgba(255,255,255,0.7); width: 36px; }
+    .p-dot.done   { background: #34d399; }
+
+    /* Form */
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .2s, background .2s, box-shadow .2s;
+    }
+    .form-control::placeholder { color: var(--dim); }
+    .form-control:focus {
+      border-color: var(--border-focus);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
+    }
+    .pw-wrap { position: relative; }
+    .pw-wrap .form-control { padding-right: 44px; }
+    .pw-eye {
+      position: absolute;
+      right: 13px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      cursor: pointer; color: var(--dim);
+      font-size: .95rem; padding: 0;
+      line-height: 1; transition: color .2s;
+    }
+    .pw-eye:hover { color: var(--muted); }
+
+    /* Strength bar */
+    .strength-bar {
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.07);
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .3s, background .3s;
+      width: 0;
+    }
+    .strength-label { font-size:.7rem; color:var(--dim); margin-top:4px; }
+
+    /* Terms */
+    .terms-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-size: .8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .terms-row input[type=checkbox] {
+      width: 16px; height: 16px;
+      accent-color: #60a5fa;
+      flex-shrink: 0;
+      margin-top: 2px;
+      cursor: pointer;
+    }
+    .terms-row a { color: rgba(255,255,255,.45); }
+    .terms-row a:hover { color: var(--text); }
+
+    /* Submit */
+    .btn-register {
+      width: 100%;
+      padding: 14px 20px;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      border-radius: var(--r-pill);
+      font-family: var(--font-head);
+      font-size: .92rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+    }
+    .btn-register:hover  { opacity:.9; box-shadow:0 6px 28px rgba(255,255,255,0.15); }
+    .btn-register:active { transform:scale(.98); }
+    .btn-register:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+    .arrow-circle {
+      width: 24px; height: 24px;
+      background: rgba(0,0,0,0.15);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; flex-shrink: 0;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 10px 14px;
+      border-radius: var(--r);
+      font-size: .82rem;
+      font-weight: 500;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .alert-error   { background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.25); color:#f87171; }
+    .alert-success { background:rgba(52,211,153,.1);  border:1px solid rgba(52,211,153,.25);  color:#34d399; }
+
+    /* Footer */
+    .card-footer {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: .82rem;
+      color: var(--dim);
+    }
+    .card-footer a {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color .2s;
+    }
+    .card-footer a:hover { color: var(--text); }
+
+    /* Field row */
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+    @media (max-width: 480px) {
+      .card { padding: 26px 20px 22px; }
+      .head h1 { font-size: 1.5rem; }
+      .field-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="card">
+
+    <!-- Logo -->
+    <div class="logo">
+      <div class="logo-icon">🏛️</div>
+      <span class="logo-text">CivicCMS</span>
+    </div>
+
+    <!-- Heading -->
+    <div class="head">
+      <h1>Create Account</h1>
+      <p>Join CivicCMS — Report issues, track progress</p>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress">
+      <div class="p-dot active" id="pd1"></div>
+      <div class="p-dot" id="pd2"></div>
+      <div class="p-dot" id="pd3"></div>
+    </div>
+
+    <div id="reg-alert" class="alert alert-error"></div>
+
+    <!-- Step 1: Basic info -->
+    <div id="step1">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input id="r-name" type="text" class="form-control" placeholder="Your full name" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input id="r-email" type="email" class="form-control" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Phone Number <span style="font-size:.65rem;opacity:.5;text-transform:none;letter-spacing:0;">(optional)</span></label>
+        <input id="r-phone" type="tel" class="form-control" placeholder="+91 XXXXX XXXXX" autocomplete="tel">
+      </div>
+      <button class="btn-register" onclick="goStep2()">
+        Continue <span class="arrow-circle">→</span>
+      </button>
+    </div>
+
+    <!-- Step 2: Password -->
+    <div id="step2" style="display:none;">
+      <div class="form-group">
+        <label>Password</label>
+        <div class="pw-wrap">
+          <input id="r-pass" type="password" class="form-control" placeholder="Min 8 characters"
+                 autocomplete="new-password" oninput="checkStrength(this.value)">
+          <button class="pw-eye" type="button" onclick="togglePw('r-pass',this)">👁</button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="sf"></div></div>
+        <div class="strength-label" id="sl">Enter a password</div>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <div class="pw-wrap">
+          <input id="r-conf" type="password" class="form-control" placeholder="Re-enter password"
+                 autocomplete="new-password">
+          <button class="pw-eye" type="button" onclick="togglePw('r-conf',this)">👁</button>
+        </div>
+      </div>
+      <div class="terms-row">
+        <input type="checkbox" id="r-terms">
+        <label for="r-terms" style="cursor:pointer;">
+          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+        </label>
+      </div>
+      <button class="btn-register" id="reg-btn" onclick="doRegister()">
+        Create Account <span class="arrow-circle">→</span>
+      </button>
+    </div>
+
+    <!-- Step 3: Success -->
+    <div id="step3" style="display:none;text-align:center;padding:10px 0 6px;">
+      <div style="font-size:3rem;margin-bottom:14px;">🎉</div>
+      <h2 style="font-family:var(--font-head);font-size:1.5rem;margin-bottom:8px;letter-spacing:-.02em;">Account Created!</h2>
+      <p style="font-size:.86rem;color:var(--muted);margin-bottom:24px;line-height:1.6;">
+        Welcome to CivicCMS, <b id="welcome-name" style="color:var(--text);"></b>!<br>
+        You can now submit and track complaints.
+      </p>
+      <button class="btn-register" onclick="window.location.href='/index.html'">
+        Go to Dashboard <span class="arrow-circle">→</span>
+      </button>
+    </div>
+
+    <!-- Footer (hide on success) -->
+    <div class="card-footer" id="reg-footer">
+      Already have an account? <a href="/login.html">Sign in →</a>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+try { if(typeof API!=='undefined'&&API.isLogged()) window.location.href='/index.html'; } catch(e){}
+
+let _step = 1;
+function setProgress(s) {
+  _step = s;
+  [1,2,3].forEach(i => {
+    const d = document.getElementById('pd'+i);
+    if(i < s)  { d.className='p-dot done'; }
+    else if(i===s){ d.className='p-dot active'; }
+    else        { d.className='p-dot'; }
+  });
+}
+
+function goStep2() {
+  const alertEl = document.getElementById('reg-alert');
+  hideAlert(alertEl);
+  const name  = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  if (!name)  return showErr(alertEl,'Please enter your full name.');
+  if (!email||!email.includes('@')) return showErr(alertEl,'Enter a valid email address.');
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  setProgress(2);
+  setTimeout(()=>document.getElementById('r-pass').focus(),80);
+}
+
+function checkStrength(v) {
+  let s=0, lbl='', col='';
+  if(v.length>=6) s++;
+  if(v.length>=10) s++;
+  if(/[A-Z]/.test(v)&&/[a-z]/.test(v)) s++;
+  if(/\d/.test(v)) s++;
+  if(/[^A-Za-z0-9]/.test(v)) s++;
+  const map=[
+    [0,'','rgba(255,255,255,.05)'],
+    [20,'Weak','#f87171'],
+    [40,'Fair','#fbbf24'],
+    [60,'Good','#60a5fa'],
+    [80,'Strong','#34d399'],
+    [100,'Very Strong','#34d399'],
+  ];
+  const level=Math.min(s,5);
+  const w=[0,20,40,60,80,100][level];
+  const c=['rgba(255,255,255,.05)','#f87171','#fbbf24','#60a5fa','#34d399','#34d399'][level];
+  const t=['Enter a password','Weak','Fair','Good','Strong','Very Strong'][level];
+  const sf=document.getElementById('sf');
+  sf.style.width=w+'%';
+  sf.style.background=c;
+  document.getElementById('sl').textContent=t;
+  document.getElementById('sl').style.color=level<=1?'#f87171':level===2?'#fbbf24':level===3?'#60a5fa':'#34d399';
+}
+
+async function doRegister() {
+  const alertEl = document.getElementById('reg-alert');
+  hideAlert(alertEl);
+  const name     = document.getElementById('r-name').value.trim();
+  const email    = document.getElementById('r-email').value.trim();
+  const password = document.getElementById('r-pass').value;
+  const confirm  = document.getElementById('r-conf').value;
+  const terms    = document.getElementById('r-terms').checked;
+  if (!password||password.length<8) return showErr(alertEl,'Password must be at least 8 characters.');
+  if (!/[A-Za-z]/.test(password)||!/\d/.test(password)) return showErr(alertEl,'Password must include letters and numbers.');
+  if (password!==confirm) return showErr(alertEl,'Passwords do not match.');
+  if (!terms) return showErr(alertEl,'Please agree to the Terms of Service to continue.');
+  const btn = document.getElementById('reg-btn');
+  btn.disabled=true; btn.innerHTML='<span style="opacity:.6">Creating account…</span>';
+  try {
+    const data = await API.post('/api/v1/auth/register',{name,email,password});
+    if(data&&data.token) API.setSession(data.token,data.name,data.email,data.role);
+    document.getElementById('welcome-name').textContent = name.split(' ')[0];
+    document.getElementById('step2').style.display='none';
+    document.getElementById('step3').style.display='block';
+    document.getElementById('reg-footer').style.display='none';
+    setProgress(3);
+  } catch(e) {
+    showErr(alertEl, e.message||'Registration failed. Please try again.');
+    btn.disabled=false; btn.innerHTML='Create Account <span class="arrow-circle">→</span>';
+  }
+}
+
+function togglePw(id,btn) {
+  const inp=document.getElementById(id);
+  const hide=inp.type==='password';
+  inp.type=hide?'text':'password';
+  btn.textContent=hide?'🙈':'👁';
+}
+function showErr(el,msg) { el.textContent='⚠ '+msg; el.className='alert alert-error'; el.style.display='block'; }
+function hideAlert(el)   { if(el) el.style.display='none'; }
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(_step===1) goStep2();
+    else if(_step===2) doRegister();
+  }
+});
+</script>
+</body>
+</html>
